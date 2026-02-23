@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>H-1B FY27 Global Policy Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-base: #000000; --bg-surface: #0a0a0a; --bg-card: #111111; 
+            --text-main: #ededed; --text-muted: #a1a1aa;
+            --accent: #0070f3; --accent-hover: #3291ff; 
+            --border: #333333;
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-base); color: var(--text-main); margin: 0; padding: 24px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; grid-template-columns: 1fr; }
+        
+        @media(min-width: 1050px) {
+            .container { grid-template-columns: 320px 1fr; }
+            .panel-left { grid-column: 1; position: sticky; top: 24px; height: fit-content; }
+            .panel-right { grid-column: 2; display: flex; flex-direction: column; gap: 24px; }
+        }
+
+        .card { background: var(--bg-surface); padding: 24px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.5); position: relative; margin-bottom: 24px;}
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        h2 { font-size: 1.2rem; margin: 0; font-weight: 600; letter-spacing: -0.02em; }
+        
+        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); letter-spacing: 0.05em; color: var(--text-muted); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.3s ease; }
+        .status-running .status-dot { background: #f5a623; box-shadow: 0 0 10px #f5a623; }
+        .status-converged .status-dot { background: #0070f3; box-shadow: 0 0 10px #0070f3; }
+
+        button { width: 100%; background: var(--text-main); color: var(--bg-base); border: none; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        button:hover:not(:disabled) { background: #ffffff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
+        button:disabled { background: var(--bg-card); color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid var(--border); }
+
+        .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn-secondary { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); font-size: 0.85rem; padding: 10px; }
+        .btn-secondary:hover:not(:disabled) { background: #1a1a1a; color: var(--text-main); }
+
+        .preset-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+        .preset-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+        .preset-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
+        .preset-val { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 700; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-box { background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+        .stat-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.05em; color: var(--accent); }
+
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .chart-title { font-size: 1.1rem; font-weight: 600; }
+        
+        .custom-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; width: 100%; margin-bottom: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-main); background: var(--bg-base); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; }
+        .legend-item.hidden { opacity: 0.4; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+
+        .chart-container { position: relative; height: 500px; width: 100%; }
+
+        .terminal-wrapper { background: var(--bg-base); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; flex-grow: 1; height: 250px; }
+        .terminal-header { background: #1a1a1a; padding: 12px 16px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); }
+        .mac-dots { display: flex; gap: 6px; }
+        .mac-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .mac-dot:nth-child(1) { background: #ff5f56; } .mac-dot:nth-child(2) { background: #ffbd2e; } .mac-dot:nth-child(3) { background: #27c93f; }
+        .terminal-title { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
+        
+        #terminal { padding: 16px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.6; flex-grow: 1; }
+        .log-line { display: flex; gap: 12px; padding: 4px 0; color: #a1a1aa; }
+        .log-time { color: #52525b; min-width: 85px; }
+        .log-badge { font-weight: 700; min-width: 50px; color: #f5a623; }
+        .log-msg { color: #e4e4e7; }
+
+        .progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 15px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; box-shadow: 0 0 10px var(--accent); transition: width 0.1s linear; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="panel-left">
+            <div class="card" style="margin-bottom: 0;">
+                <div class="card-header">
+                    <h2>Global Execution</h2>
+                    <div class="status-badge status-idle" id="statusBadge"><div class="status-dot"></div><span id="statusText">IDLE</span></div>
+                </div>
+                
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
+                    This engine models all 8 possible demographic permutations against 41 distinct competitor pool sizes (100k - 500k), optimized with Logarithmic Caching.
+                </div>
+                
+                <button id="startBtn" onclick="startSim()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Execute Matrix Sweep
+                </button>
+                
+                <div class="btn-group">
+                    <button id="saveBtn" class="btn-secondary" onclick="exportJSONData()" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Save Data
+                    </button>
+                    <button class="btn-secondary" onclick="document.getElementById('fileUpload').click()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Load Data
+                    </button>
+                </div>
+                <input type="file" id="fileUpload" accept=".json" style="display: none;" onchange="importJSONData(event)">
+
+                <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+
+            <div class="card" style="margin-top: 24px;">
+                <h2>FY 2027 Projections</h2>
+                <div class="preset-block" style="margin-top: 15px;">
+                    <div class="preset-title">Wage Distribution (Modeled)</div>
+                    <div class="preset-row"><span>Level 1 (1x)</span><span class="preset-val">10%</span></div>
+                    <div class="preset-row"><span>Level 2 (2x)</span><span class="preset-val">40%</span></div>
+                    <div class="preset-row"><span>Level 3 (3x)</span><span class="preset-val">35%</span></div>
+                    <div class="preset-row"><span>Level 4 (4x)</span><span class="preset-val">15%</span></div>
+                </div>
+                <div class="preset-block">
+                    <div class="preset-title">Degree Distribution (Modeled)</div>
+                    <div class="preset-row"><span>U.S. Master's +</span><span class="preset-val">60%</span></div>
+                    <div class="preset-row"><span>Bachelor's Only</span><span class="preset-val">40%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-right">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-header">Total Math Operations</div>
+                    <div class="stat-value" id="uiCount" style="color: #fff;">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-header">Smoothing Passes</div>
+                    <div class="stat-value" id="uiPasses">0 / 40</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="chart-header">
+                    <div class="chart-title">8-Dimensional Probability Matrix</div>
+                </div>
+                <div class="custom-legend" id="customLegend"></div>
+                <div class="chart-container">
+                    <canvas id="sweepChart"></canvas>
+                </div>
+            </div>
+
+            <div class="terminal-wrapper">
+                <div class="terminal-header">
+                    <div class="mac-dots"><div class="mac-dot"></div><div class="mac-dot"></div><div class="mac-dot"></div></div>
+                    <div class="terminal-title">matrix-logs ~ <span id="coresCount" style="color:var(--accent)"></span> logical cores</div>
+                </div>
+                <div id="terminal">
+                    <div class="log-line"><span class="log-badge" style="color:#0ea5e9">SYS</span><span class="log-msg">Booting UI Interface. Checking for pre-computed models...</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cores = navigator.hardwareConcurrency || 4;
+        document.getElementById('coresCount').innerText = cores;
+
+        const N_LABELS = [];
+        for (let i = 100000; i <= 500000; i += 10000) N_LABELS.push(i); 
+
+        const PROFILES = [
+            { id: 'w4_m', label: 'L4 + Master\'s', wage: 4, masters: true, color: '#10b981' }, 
+            { id: 'w3_m', label: 'L3 + Master\'s', wage: 3, masters: true, color: '#0ea5e9' }, 
+            { id: 'w2_m', label: 'L2 + Master\'s', wage: 2, masters: true, color: '#6366f1' }, 
+            { id: 'w1_m', label: 'L1 + Master\'s', wage: 1, masters: true, color: '#a855f7' }, 
+            { id: 'w4_b', label: 'L4 + Bachelor\'s', wage: 4, masters: false, color: '#facc15' }, 
+            { id: 'w3_b', label: 'L3 + Bachelor\'s', wage: 3, masters: false, color: '#f97316' }, 
+            { id: 'w2_b', label: 'L2 + Bachelor\'s', wage: 2, masters: false, color: '#ef4444' }, 
+            { id: 'w1_b', label: 'L1 + Bachelor\'s', wage: 1, masters: false, color: '#be123c' }  
+        ];
+
+        let simData = {};
+        PROFILES.forEach(p => {
+            simData[p.id] = {};
+            N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0 }; });
+        });
+
+        let totalEngineOperations = 0;
+        let activeWorkers = 0;
+        let isRunning = false;
+        let taskQueue = [];
+        let completedTasks = 0;
+        let logQueue = [];
+        let animationFrameId;
+        
+        const PASSES = 40; 
+        const BATCH_SIZE = 50; 
+        const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
+
+        // Chart Setup
+        const ctx = document.getElementById('sweepChart').getContext('2d');
+        const datasets = PROFILES.map(p => ({
+            label: p.label,
+            id: p.id,
+            data: Array(N_LABELS.length).fill(null),
+            borderColor: p.color,
+            backgroundColor: p.color,
+            borderWidth: 2.5,
+            pointRadius: 0,
+            tension: 0.4,
+            fill: false
+        }));
+
+        const sweepChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: N_LABELS.map(n => (n/1000).toFixed(0) + 'k'), datasets: datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: { 
+                    x: { grid: { color: '#222' }, ticks: { color: '#888', maxTicksLimit: 12 }, title: { display: true, text: 'Total Applicant Pool Size', color: '#a1a1aa' } }, 
+                    y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100, title: { display: true, text: 'Probability (%)', color: '#a1a1aa' } } 
+                },
+                plugins: { 
+                    legend: { display: false }, 
+                    tooltip: { 
+                        backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#fff', bodyColor: '#ccc', borderColor: '#333', borderWidth: 1,
+                        callbacks: { label: function(context) { return context.dataset.label + ': ' + context.parsed.y + '%'; } }
+                    } 
+                }
+            }
+        });
+
+        const legendContainer = document.getElementById('customLegend');
+        PROFILES.forEach((p, index) => {
+            const el = document.createElement('div');
+            el.className = 'legend-item';
+            el.innerHTML = `<div class="legend-color" style="background: ${p.color}"></div> ${p.label}`;
+            el.onclick = () => {
+                const meta = sweepChart.getDatasetMeta(index);
+                meta.hidden = meta.hidden === null ? !sweepChart.data.datasets[index].hidden : null;
+                el.classList.toggle('hidden');
+                sweepChart.update();
+            };
+            legendContainer.appendChild(el);
+        });
+
+        function queueLog(level, msg) {
+            const d = new Date();
+            const time = `${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}.${d.getMilliseconds().toString().padStart(3,'0')}`;
+            logQueue.push({ time, level, msg });
+        }
+
+        function flushLogsToTerminal() {
+            if (logQueue.length === 0) return;
+            const terminal = document.getElementById('terminal');
+            const fragment = document.createDocumentFragment();
+            while(logQueue.length > 0) {
+                let log = logQueue.shift();
+                let div = document.createElement('div'); div.className = 'log-line';
+                let color = log.level === 'SYS' ? '#0ea5e9' : '#f5a623';
+                div.innerHTML = `<span class="log-time">${log.time}</span><span class="log-badge" style="color:${color}">${log.level}</span><span class="log-msg">${log.msg}</span>`;
+                fragment.appendChild(div);
+            }
+            terminal.appendChild(fragment); terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function autoLoadData() {
+            try {
+                queueLog('SYS', 'Attempting to fetch pre-computed dataset from server...');
+                flushLogsToTerminal();
+                const response = await fetch('./preload-data.json');
+                if (!response.ok) {
+                    queueLog('SYS', 'No preload file found on server. Awaiting manual execution.');
+                    flushLogsToTerminal();
+                    return;
+                }
+                const parsed = await response.json();
+                simData = parsed.simData; totalEngineOperations = parsed.totalEngineOperations || 0; completedTasks = parsed.completedTasks || 0;
+                
+                document.getElementById('uiCount').innerText = totalEngineOperations.toLocaleString();
+                document.getElementById('uiPasses').innerText = `${PASSES} / ${PASSES} (PRELOADED)`;
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('statusBadge').className = `status-badge status-converged`;
+                document.getElementById('statusText').innerText = 'LOADED';
+                document.getElementById('saveBtn').disabled = false;
+                
+                PROFILES.forEach((p, index) => {
+                    let newData = N_LABELS.map(n => {
+                        if (!simData[p.id] || !simData[p.id][n] || simData[p.id][n].runs === 0) return null;
+                        return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
+                    });
+                    sweepChart.data.datasets[index].data = newData;
+                });
+                sweepChart.update();
+                queueLog('SYS', 'Pre-computed matrix parsed and injected into rendering engine successfully.');
+                flushLogsToTerminal();
+            } catch (error) {
+                queueLog('SYS', 'Failed to fetch preload data. Awaiting manual execution.');
+                flushLogsToTerminal();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', autoLoadData);
+
+        function exportJSONData() {
+            if (totalEngineOperations === 0) return;
+            const payload = { timestamp: new Date().toISOString(), totalEngineOperations: totalEngineOperations, completedTasks: completedTasks, PASSES: PASSES, simData: simData };
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `H1B_Matrix_Data_${Date.now()}.json`; a.click();
+            URL.revokeObjectURL(url);
+            queueLog('SYS', `Data serialized and exported successfully.`); flushLogsToTerminal();
+        }
+
+        function importJSONData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            queueLog('SYS', `Parsing JSON file: ${file.name}...`);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    simData = parsed.simData; totalEngineOperations = parsed.totalEngineOperations || 0; completedTasks = parsed.completedTasks || 0;
+                    document.getElementById('uiCount').innerText = totalEngineOperations.toLocaleString();
+                    document.getElementById('uiPasses').innerText = `${PASSES} / ${PASSES} (LOADED)`;
+                    document.getElementById('progressFill').style.width = '100%';
+                    document.getElementById('statusBadge').className = `status-badge status-converged`; document.getElementById('statusText').innerText = 'LOADED';
+                    document.getElementById('saveBtn').disabled = false;
+                    PROFILES.forEach((p, index) => {
+                        let newData = N_LABELS.map(n => {
+                            if (!simData[p.id] || !simData[p.id][n] || simData[p.id][n].runs === 0) return null;
+                            return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
+                        });
+                        sweepChart.data.datasets[index].data = newData;
+                    });
+                    sweepChart.update();
+                    queueLog('SYS', `State rehydration complete. Interactive chart restored.`); flushLogsToTerminal();
+                } catch (err) {
+                    alert("Invalid file format. Please upload a valid Matrix JSON file.");
+                    queueLog('SYS', `ERROR: Failed to parse uploaded JSON.`); flushLogsToTerminal();
+                }
+            };
+            reader.readAsText(file); event.target.value = '';
+        }
+
+        function updateUI() {
+            if (!isRunning) return;
+            document.getElementById('uiCount').innerText = totalEngineOperations.toLocaleString();
+            let currentPass = Math.floor(completedTasks / (N_LABELS.length * PROFILES.length));
+            document.getElementById('uiPasses').innerText = `${currentPass} / ${PASSES}`;
+            document.getElementById('progressFill').style.width = `${(completedTasks / TOTAL_TASKS) * 100}%`;
+
+            PROFILES.forEach((p, index) => {
+                let newData = N_LABELS.map(n => {
+                    if (simData[p.id][n].runs === 0) return null;
+                    return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
+                });
+                sweepChart.data.datasets[index].data = newData;
+            });
+            sweepChart.update();
+            flushLogsToTerminal();
+            animationFrameId = requestAnimationFrame(updateUI);
+        }
+
+        // =========================================================================
+        // LOGARITHMIC CACHING WORKER KERNEL
+        // =========================================================================
+        const workerCode = `
+        self.onmessage = function(e) {
+            if (e.data.type === 'init') {
+                self.MAX_N = 500000;
+                self.baseTickets = new Int8Array(self.MAX_N);
+                self.baseMasters = new Uint8Array(self.MAX_N);
+                
+                // Initialize Entropy Pool for Logarithmic Caching
+                self.ENTROPY_SIZE = 5000000; // 5 Million pre-computed logs
+                self.entropy = new Float32Array(self.ENTROPY_SIZE);
+                for(let i=0; i < self.ENTROPY_SIZE; i++){
+                    self.entropy[i] = -Math.log(Math.random() || 1e-10);
+                }
+                self.ePtr = 0;
+                
+                // Apply Modeled FY27 Behaviors
+                for (let i = 1; i < self.MAX_N; i++) {
+                    let rT = Math.random();
+                    // L4 (15%), L3 (35%), L2 (40%), L1 (10%)
+                    self.baseTickets[i] = rT > 0.85 ? 4 : (rT > 0.50 ? 3 : (rT > 0.10 ? 2 : 1));
+                    // Master's (60%), Bachelor's (40%)
+                    self.baseMasters[i] = Math.random() < 0.60 ? 1 : 0;
+                }
+                self.postMessage({ type: 'ready', id: e.data.id });
+            } 
+            else if (e.data.type === 'task') {
+                const { N, runs, profileId, wage, masters } = e.data;
+                const regCap = Math.min(92000, N);
+                let wins = 0;
+                
+                for (let r = 0; r < runs; r++) {
+                    // Check entropy pointer bounds once per run
+                    if (self.ePtr + N + 28000 >= self.ENTROPY_SIZE) { self.ePtr = 0; }
+                    
+                    let keys = new Float32Array(N);
+                    keys[0] = self.entropy[self.ePtr++] / wage;
+                    
+                    // The Core Mathematical Loop (Now utilizing pre-computed cache)
+                    for (let i = 1; i < N; i++) {
+                        keys[i] = self.entropy[self.ePtr++] / self.baseTickets[i];
+                    }
+                    
+                    let keysCopy = new Float32Array(keys); keysCopy.sort();
+                    let regThreshold = keysCopy[regCap - 1];
+                    
+                    if (keys[0] <= regThreshold) { 
+                        wins++; 
+                    } else if (masters) {
+                        let rem = 0; 
+                        for (let i = 1; i < N; i++) { 
+                            if (self.baseMasters[i] === 1 && keys[i] > regThreshold) rem++; 
+                        }
+                        rem++; 
+
+                        let mastCap = Math.min(28000, rem);
+                        if (mastCap === rem) { 
+                            wins++; 
+                        } else {
+                            let mKeys = new Float32Array(rem); 
+                            let mIdx = 0;
+                            let uKey = self.entropy[self.ePtr++] / wage;
+                            mKeys[mIdx++] = uKey;
+
+                            for (let i = 1; i < N; i++) {
+                                if (self.baseMasters[i] === 1 && keys[i] > regThreshold) {
+                                    mKeys[mIdx++] = self.entropy[self.ePtr++] / self.baseTickets[i];
+                                }
+                            }
+                            mKeys.sort();
+                            if (uKey <= mKeys[mastCap - 1]) wins++;
+                        }
+                    }
+                }
+                self.postMessage({ type: 'result', N, profileId, wins, runs, workerId: e.data.id });
+            }
+        };
+        `;
+
+        const blob = new Blob([workerCode], {type: 'application/javascript'});
+        const workerUrl = URL.createObjectURL(blob);
+        let workers = [];
+
+        function dispatchTask(worker, workerId) {
+            if (taskQueue.length === 0) {
+                activeWorkers--;
+                if (activeWorkers === 0) finalizeSim();
+                return;
+            }
+            const task = taskQueue.shift();
+            worker.postMessage({ type: 'task', N: task.N, runs: task.runs, profileId: task.profileId, wage: task.wage, masters: task.masters, id: workerId });
+        }
+
+        function startSim() {
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('saveBtn').disabled = true;
+            document.getElementById('statusBadge').className = `status-badge status-running`;
+            document.getElementById('statusText').innerText = 'COMPUTING MATRIX';
+            
+            PROFILES.forEach(p => { N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0 }; }); });
+            sweepChart.data.datasets.forEach(ds => ds.data = Array(N_LABELS.length).fill(null));
+            sweepChart.update();
+            
+            totalEngineOperations = 0; completedTasks = 0; taskQueue = []; logQueue = [];
+            
+            for (let pass = 0; pass < PASSES; pass++) {
+                N_LABELS.forEach(n => {
+                    PROFILES.forEach(p => { taskQueue.push({ N: n, runs: BATCH_SIZE, profileId: p.id, wage: p.wage, masters: p.masters }); });
+                });
+            }
+            
+            queueLog('SYS', `Caching Demographics and 5 Million Entropy Keys...`);
+            isRunning = true; activeWorkers = cores;
+            animationFrameId = requestAnimationFrame(updateUI);
+
+            for (let i = 0; i < cores; i++) {
+                let worker = new Worker(workerUrl); workers.push(worker);
+                worker.onmessage = function(e) {
+                    if (e.data.type === 'ready') {
+                        queueLog('SYS', `Core ${e.data.id} synchronized. Engaging task queue.`);
+                        dispatchTask(worker, e.data.id);
+                    } 
+                    else if (e.data.type === 'result') {
+                        simData[e.data.profileId][e.data.N].wins += e.data.wins;
+                        simData[e.data.profileId][e.data.N].runs += e.data.runs;
+                        totalEngineOperations += e.data.runs;
+                        completedTasks++;
+                        dispatchTask(worker, e.data.workerId);
+                    }
+                };
+                worker.postMessage({ type: 'init', id: i });
+            }
+        }
+
+        function finalizeSim() {
+            workers.forEach(w => w.terminate()); workers = [];
+            setTimeout(() => {
+                isRunning = false; cancelAnimationFrame(animationFrameId);
+                document.getElementById('statusBadge').className = `status-badge status-converged`;
+                document.getElementById('statusText').innerText = 'CONVERGED';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('saveBtn').disabled = false;
+                document.getElementById('startBtn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> Re-Run Matrix Sweep';
+                queueLog('SYS', `GLOBAL SWEEP COMPLETE. Mathematical stabilization achieved.`);
+                flushLogsToTerminal();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
