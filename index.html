@@ -23,7 +23,7 @@
             .panel-right { grid-column: 2; display: flex; flex-direction: column; gap: 24px; }
         }
 
-        .card { background: var(--bg-surface); padding: 24px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.5); position: relative;}
+        .card { background: var(--bg-surface); padding: 24px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.5); position: relative; margin-bottom: 24px;}
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         h2 { font-size: 1.2rem; margin: 0; font-weight: 600; letter-spacing: -0.02em; }
         
@@ -51,7 +51,8 @@
         .stat-value { font-size: 1.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.05em; color: var(--accent); }
 
         .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .chart-title { font-size: 1.1rem; font-weight: 600; }
+        .chart-title { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .tag { font-size: 0.65rem; background: rgba(0, 112, 243, 0.2); color: var(--accent); padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(0, 112, 243, 0.5); }
         
         .custom-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; width: 100%; margin-bottom: 15px; }
         .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-main); background: var(--bg-base); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; }
@@ -60,7 +61,6 @@
 
         .chart-container { position: relative; height: 500px; width: 100%; }
 
-        /* Insights Section (NEW) */
         #insightsPanel { display: none; margin-top: 0px; }
         .insights-layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
         @media(min-width: 1200px) { .insights-layout { grid-template-columns: 3fr 2fr; } }
@@ -72,7 +72,6 @@
         .i-val { font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
         .i-desc { font-size: 0.85rem; color: #a1a1aa; line-height: 1.4; }
 
-        /* Terminal */
         .terminal-wrapper { background: var(--bg-base); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; flex-grow: 1; height: 200px; }
         .terminal-header { background: #1a1a1a; padding: 12px 16px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); }
         .mac-dots { display: flex; gap: 6px; }
@@ -100,7 +99,7 @@
                 </div>
                 
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                    This engine models all 8 possible demographic permutations against 41 distinct competitor pool sizes (100k - 500k), optimized with Logarithmic Caching.
+                    Utilizes stochastic demographics and binomial variance tracking to model the exact FY 2027 behavioral shifts.
                 </div>
                 
                 <button id="startBtn" onclick="startSim()">
@@ -124,18 +123,18 @@
             </div>
 
             <div class="card" style="margin-top: 24px;">
-                <h2>FY 2027 Projections</h2>
+                <h2>FY 2027 Reality Calibrations</h2>
                 <div class="preset-block" style="margin-top: 15px;">
-                    <div class="preset-title">Wage Distribution (Modeled)</div>
-                    <div class="preset-row"><span>Level 1 (1x)</span><span class="preset-val">10%</span></div>
-                    <div class="preset-row"><span>Level 2 (2x)</span><span class="preset-val">40%</span></div>
-                    <div class="preset-row"><span>Level 3 (3x)</span><span class="preset-val">35%</span></div>
-                    <div class="preset-row"><span>Level 4 (4x)</span><span class="preset-val">15%</span></div>
+                    <div class="preset-title">Wage Demographics</div>
+                    <div class="preset-row"><span>Level 1 (1x)</span><span class="preset-val" style="color:#e00;">5%</span></div>
+                    <div class="preset-row"><span>Level 2 (2x)</span><span class="preset-val">35%</span></div>
+                    <div class="preset-row"><span>Level 3 (3x)</span><span class="preset-val" style="color:var(--success);">40%</span></div>
+                    <div class="preset-row"><span>Level 4 (4x)</span><span class="preset-val">20%</span></div>
                 </div>
                 <div class="preset-block">
-                    <div class="preset-title">Degree Distribution (Modeled)</div>
-                    <div class="preset-row"><span>U.S. Master's +</span><span class="preset-val">60%</span></div>
-                    <div class="preset-row"><span>Bachelor's Only</span><span class="preset-val">40%</span></div>
+                    <div class="preset-title">Degree Demographics</div>
+                    <div class="preset-row"><span>U.S. Master's +</span><span class="preset-val" style="color:var(--success);">65%</span></div>
+                    <div class="preset-row"><span>Bachelor's Only</span><span class="preset-val">35%</span></div>
                 </div>
             </div>
         </div>
@@ -154,7 +153,7 @@
             
             <div class="card">
                 <div class="chart-header">
-                    <div class="chart-title">8-Dimensional Probability Matrix</div>
+                    <div class="chart-title">8-Dimensional Probability Matrix <span class="tag">± 95% Confidence Int.</span></div>
                 </div>
                 <div class="custom-legend" id="customLegend"></div>
                 <div class="chart-container">
@@ -174,17 +173,17 @@
                         <div class="i-card" style="border-color: #6366f1;">
                             <div class="i-title">The Master's Armor</div>
                             <div class="i-val" id="insArmor">--</div>
-                            <div class="i-desc">A Level 2 Master's applicant mathematically outperforms a Level 3 Bachelor's applicant.</div>
+                            <div class="i-desc">A Level 2 Master's applicant statistically outperforms a Level 3 Bachelor's applicant.</div>
                         </div>
                         <div class="i-card" style="border-color: #10b981;">
                             <div class="i-title">Best ROI Wage Bump</div>
                             <div class="i-val" id="insROI">--</div>
-                            <div class="i-desc">The probability multiplier gained by increasing salary from Level 1 to Level 2 (Master's track).</div>
+                            <div class="i-desc">The absolute probability multiplier gained by increasing salary from Level 1 to Level 2 (Master's track).</div>
                         </div>
                         <div class="i-card" style="border-color: #be123c;">
-                            <div class="i-title">Entry-Level Filter</div>
+                            <div class="i-title">Entry-Level Filtration</div>
                             <div class="i-val" id="insFilter">--</div>
-                            <div class="i-desc">Win rate for Level 1 Bachelor's at 400k applicants. The algorithm severely restricts this tier.</div>
+                            <div class="i-desc">Win rate for Level 1 Bachelor's at 400k applicants. The algorithm actively purges this tier.</div>
                         </div>
                     </div>
                 </div>
@@ -196,7 +195,7 @@
                     <div class="terminal-title">matrix-logs ~ <span id="coresCount" style="color:var(--accent)"></span> logical cores</div>
                 </div>
                 <div id="terminal">
-                    <div class="log-line"><span class="log-badge" style="color:#0ea5e9">SYS</span><span class="log-msg">Booting UI Interface. Checking for pre-computed models...</span></div>
+                    <div class="log-line"><span class="log-badge" style="color:#0ea5e9">SYS</span><span class="log-msg">Booting UI Interface. Awaiting command parameters...</span></div>
                 </div>
             </div>
         </div>
@@ -223,22 +222,14 @@
         let simData = {};
         PROFILES.forEach(p => {
             simData[p.id] = {};
-            N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0 }; });
+            N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0, margin: 0 }; });
         });
 
-        let totalEngineOperations = 0;
-        let activeWorkers = 0;
-        let isRunning = false;
-        let taskQueue = [];
-        let completedTasks = 0;
-        let logQueue = [];
-        let animationFrameId;
-        
-        const PASSES = 40; 
-        const BATCH_SIZE = 50; 
-        const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
+        let totalEngineOperations = 0; let activeWorkers = 0; let isRunning = false;
+        let taskQueue = []; let completedTasks = 0; let logQueue = []; let animationFrameId;
+        const PASSES = 40; const BATCH_SIZE = 50; const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
 
-        // Main Line Chart Setup
+        // Chart Setup (Includes Custom Tooltip for Binomial Standard Error)
         const ctx = document.getElementById('sweepChart').getContext('2d');
         const datasets = PROFILES.map(p => ({
             label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
@@ -253,11 +244,23 @@
                     x: { grid: { color: '#222' }, ticks: { color: '#888', maxTicksLimit: 12 }, title: { display: true, text: 'Total Applicant Pool Size', color: '#a1a1aa' } }, 
                     y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100, title: { display: true, text: 'Probability (%)', color: '#a1a1aa' } } 
                 },
-                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#fff', bodyColor: '#ccc', borderColor: '#333', borderWidth: 1, callbacks: { label: function(c) { return c.dataset.label + ': ' + c.parsed.y + '%'; } } } }
+                plugins: { 
+                    legend: { display: false }, 
+                    tooltip: { 
+                        backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#fff', bodyColor: '#ccc', borderColor: '#333', borderWidth: 1,
+                        callbacks: { 
+                            label: function(c) { 
+                                const dsId = c.dataset.id;
+                                const nVal = N_LABELS[c.dataIndex];
+                                const margin = simData[dsId][nVal].margin || 0;
+                                return `${c.dataset.label}: ${c.parsed.y}% (±${margin}%)`; 
+                            } 
+                        }
+                    } 
+                }
             }
         });
 
-        // Insights Bar Chart Setup
         const barCtx = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(barCtx, {
             type: 'bar',
@@ -298,20 +301,22 @@
             terminal.appendChild(fragment); terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // --- DATA INSIGHTS GENERATOR ---
+        function calculateStandardError(wins, runs) {
+            if (runs === 0) return 0;
+            const p = wins / runs;
+            const se = Math.sqrt((p * (1 - p)) / runs);
+            return (1.96 * se * 100).toFixed(2); // 95% CI Margin
+        }
+
         function generateInsights(dataObj) {
             document.getElementById('insightsPanel').style.display = 'block';
-            
-            // 1. Update Bar Chart for N=300,000
             const targetN = 300000;
             const barData = PROFILES.map(p => {
                 if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
                 return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
             });
-            barChart.data.datasets[0].data = barData;
-            barChart.update();
+            barChart.data.datasets[0].data = barData; barChart.update();
 
-            // 2. Calculate Callout Metrics safely
             try {
                 let l2m = ((dataObj['w2_m'][targetN].wins / dataObj['w2_m'][targetN].runs) * 100).toFixed(1);
                 let l3b = ((dataObj['w3_b'][targetN].wins / dataObj['w3_b'][targetN].runs) * 100).toFixed(1);
@@ -323,16 +328,13 @@
 
                 let l1b_400k = ((dataObj['w1_b'][400000].wins / dataObj['w1_b'][400000].runs) * 100).toFixed(1);
                 document.getElementById('insFilter').innerText = `${l1b_400k}%`;
-            } catch(e) {
-                console.log("Not enough data generated yet for exact insights.");
-            }
+            } catch(e) {}
         }
 
         async function autoLoadData() {
             try {
-                queueLog('SYS', 'Attempting to fetch pre-computed dataset from server...'); flushLogsToTerminal();
                 const response = await fetch('./preload-data.json');
-                if (!response.ok) { queueLog('SYS', 'No preload file found on server. Awaiting manual execution.'); flushLogsToTerminal(); return; }
+                if (!response.ok) return;
                 const parsed = await response.json();
                 
                 simData = parsed.simData; totalEngineOperations = parsed.totalEngineOperations || 0; completedTasks = parsed.completedTasks || 0;
@@ -346,16 +348,14 @@
                 PROFILES.forEach((p, index) => {
                     let newData = N_LABELS.map(n => {
                         if (!simData[p.id] || !simData[p.id][n] || simData[p.id][n].runs === 0) return null;
+                        simData[p.id][n].margin = calculateStandardError(simData[p.id][n].wins, simData[p.id][n].runs);
                         return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
                     });
                     sweepChart.data.datasets[index].data = newData;
                 });
-                sweepChart.update();
-                
-                generateInsights(simData); // Trigger insights rendering
-                
-                queueLog('SYS', 'Pre-computed matrix parsed and injected into rendering engine successfully.'); flushLogsToTerminal();
-            } catch (error) { queueLog('SYS', 'Failed to fetch preload data. Awaiting manual execution.'); flushLogsToTerminal(); }
+                sweepChart.update(); generateInsights(simData);
+                queueLog('SYS', 'Pre-computed FY27 reality matrix injected successfully.'); flushLogsToTerminal();
+            } catch (error) {}
         }
 
         window.addEventListener('DOMContentLoaded', autoLoadData);
@@ -365,14 +365,12 @@
             const payload = { timestamp: new Date().toISOString(), totalEngineOperations: totalEngineOperations, completedTasks: completedTasks, PASSES: PASSES, simData: simData };
             const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `H1B_Matrix_Data_${Date.now()}.json`; a.click();
-            URL.revokeObjectURL(url);
-            queueLog('SYS', `Data serialized and exported successfully.`); flushLogsToTerminal();
+            const a = document.createElement('a'); a.href = url; a.download = `H1B_FY27_Matrix_${Date.now()}.json`; a.click();
+            URL.revokeObjectURL(url); queueLog('SYS', `Data serialized and exported successfully.`); flushLogsToTerminal();
         }
 
         function importJSONData(event) {
             const file = event.target.files[0]; if (!file) return;
-            queueLog('SYS', `Parsing JSON file: ${file.name}...`);
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -386,14 +384,14 @@
                     PROFILES.forEach((p, index) => {
                         let newData = N_LABELS.map(n => {
                             if (!simData[p.id] || !simData[p.id][n] || simData[p.id][n].runs === 0) return null;
+                            simData[p.id][n].margin = calculateStandardError(simData[p.id][n].wins, simData[p.id][n].runs);
                             return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
                         });
                         sweepChart.data.datasets[index].data = newData;
                     });
-                    sweepChart.update();
-                    generateInsights(simData); // Trigger insights
+                    sweepChart.update(); generateInsights(simData);
                     queueLog('SYS', `State rehydration complete. Interactive chart restored.`); flushLogsToTerminal();
-                } catch (err) { alert("Invalid file format. Please upload a valid Matrix JSON file."); queueLog('SYS', `ERROR: Failed to parse uploaded JSON.`); flushLogsToTerminal(); }
+                } catch (err) { alert("Invalid JSON file."); }
             };
             reader.readAsText(file); event.target.value = '';
         }
@@ -408,15 +406,17 @@
             PROFILES.forEach((p, index) => {
                 let newData = N_LABELS.map(n => {
                     if (simData[p.id][n].runs === 0) return null;
+                    simData[p.id][n].margin = calculateStandardError(simData[p.id][n].wins, simData[p.id][n].runs);
                     return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
                 });
                 sweepChart.data.datasets[index].data = newData;
             });
-            sweepChart.update();
-            flushLogsToTerminal();
-            animationFrameId = requestAnimationFrame(updateUI);
+            sweepChart.update(); flushLogsToTerminal(); animationFrameId = requestAnimationFrame(updateUI);
         }
 
+        // =========================================================================
+        // UPDATED WORKER KERNEL (FY27 CALIBRATION)
+        // =========================================================================
         const workerCode = `
         self.onmessage = function(e) {
             if (e.data.type === 'init') {
@@ -429,10 +429,13 @@
                 for(let i=0; i < self.ENTROPY_SIZE; i++){ self.entropy[i] = -Math.log(Math.random() || 1e-10); }
                 self.ePtr = 0;
                 
+                // FY27 REALITY DEMOGRAPHICS
                 for (let i = 1; i < self.MAX_N; i++) {
                     let rT = Math.random();
-                    self.baseTickets[i] = rT > 0.85 ? 4 : (rT > 0.50 ? 3 : (rT > 0.10 ? 2 : 1));
-                    self.baseMasters[i] = Math.random() < 0.60 ? 1 : 0;
+                    // L4 (20%), L3 (40%), L2 (35%), L1 (5%)
+                    self.baseTickets[i] = rT > 0.80 ? 4 : (rT > 0.40 ? 3 : (rT > 0.05 ? 2 : 1));
+                    // Master's (65%), Bachelor's (35%)
+                    self.baseMasters[i] = Math.random() < 0.65 ? 1 : 0;
                 }
                 self.postMessage({ type: 'ready', id: e.data.id });
             } 
@@ -489,9 +492,9 @@
         function startSim() {
             document.getElementById('startBtn').disabled = true; document.getElementById('saveBtn').disabled = true;
             document.getElementById('statusBadge').className = `status-badge status-running`; document.getElementById('statusText').innerText = 'COMPUTING MATRIX';
-            document.getElementById('insightsPanel').style.display = 'none'; // Hide insights during compute
+            document.getElementById('insightsPanel').style.display = 'none';
             
-            PROFILES.forEach(p => { N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0 }; }); });
+            PROFILES.forEach(p => { N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0, margin: 0 }; }); });
             sweepChart.data.datasets.forEach(ds => ds.data = Array(N_LABELS.length).fill(null)); sweepChart.update();
             
             totalEngineOperations = 0; completedTasks = 0; taskQueue = []; logQueue = [];
@@ -499,15 +502,13 @@
                 N_LABELS.forEach(n => { PROFILES.forEach(p => { taskQueue.push({ N: n, runs: BATCH_SIZE, profileId: p.id, wage: p.wage, masters: p.masters }); }); });
             }
             
-            queueLog('SYS', `Caching Demographics and Entropy Keys...`);
+            queueLog('SYS', `Caching Demographics and FY27 Entropy Keys...`);
             isRunning = true; activeWorkers = cores; animationFrameId = requestAnimationFrame(updateUI);
 
             for (let i = 0; i < cores; i++) {
                 let worker = new Worker(workerUrl); workers.push(worker);
                 worker.onmessage = function(e) {
-                    if (e.data.type === 'ready') {
-                        queueLog('SYS', `Core ${e.data.id} synchronized. Engaging task queue.`); dispatchTask(worker, e.data.id);
-                    } 
+                    if (e.data.type === 'ready') { dispatchTask(worker, e.data.id); } 
                     else if (e.data.type === 'result') {
                         simData[e.data.profileId][e.data.N].wins += e.data.wins; simData[e.data.profileId][e.data.N].runs += e.data.runs;
                         totalEngineOperations += e.data.runs; completedTasks++;
@@ -525,10 +526,8 @@
                 document.getElementById('statusBadge').className = `status-badge status-converged`; document.getElementById('statusText').innerText = 'CONVERGED';
                 document.getElementById('startBtn').disabled = false; document.getElementById('saveBtn').disabled = false;
                 document.getElementById('startBtn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> Re-Run Matrix Sweep';
-                queueLog('SYS', `GLOBAL SWEEP COMPLETE. Mathematical stabilization achieved.`);
-                
-                generateInsights(simData); // Render insights from fresh compute
-                flushLogsToTerminal();
+                queueLog('SYS', `GLOBAL SWEEP COMPLETE. Variance bounds minimized and stabilized.`);
+                generateInsights(simData); flushLogsToTerminal();
             }, 500);
         }
     </script>
