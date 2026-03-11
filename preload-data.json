@@ -1,556 +1,2064 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>H-1B FY27 Global Policy Analyzer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-base: #000000; --bg-surface: #0a0a0a; --bg-card: #111111; 
-            --text-main: #ededed; --text-muted: #a1a1aa;
-            --accent: #0070f3; --accent-hover: #3291ff; 
-            --border: #333333;
-        }
-
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-base); color: var(--text-main); margin: 0; padding: 24px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-        .container { max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; grid-template-columns: 1fr; }
-        
-        @media(min-width: 1050px) {
-            .container { grid-template-columns: 340px 1fr; }
-            .panel-left { grid-column: 1; position: sticky; top: 24px; height: fit-content; }
-            .panel-right { grid-column: 2; display: flex; flex-direction: column; gap: 24px; }
-        }
-
-        .card { background: var(--bg-surface); padding: 24px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.5); position: relative; margin-bottom: 24px;}
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        h2 { font-size: 1.2rem; margin: 0; font-weight: 600; letter-spacing: -0.02em; }
-        
-        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); letter-spacing: 0.05em; color: var(--text-muted); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.3s ease; }
-        .status-running .status-dot { background: #f5a623; box-shadow: 0 0 10px #f5a623; }
-        .status-converged .status-dot { background: #0070f3; box-shadow: 0 0 10px #0070f3; }
-
-        button { width: 100%; background: var(--text-main); color: var(--bg-base); border: none; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        button:hover:not(:disabled) { background: #ffffff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
-        button:disabled { background: var(--bg-card); color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid var(--border); }
-
-        .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
-        .btn-secondary { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); font-size: 0.85rem; padding: 10px; }
-        .btn-secondary:hover:not(:disabled) { background: #1a1a1a; color: var(--text-main); }
-
-        label { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
-        input[type="range"] { width: 100%; margin-bottom: 24px; accent-color: var(--accent); cursor: pointer; }
-
-        .preset-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        .preset-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-        .preset-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; align-items: center; }
-        .preset-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #ededed;}
-        
-        .transition-flow { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.75rem; }
-        .flow-arrow { color: var(--accent); }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-box { background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-        .stat-header { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-        .stat-value { font-size: 1.8rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.05em; color: var(--accent); }
-
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .chart-title { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-        .tag { font-size: 0.65rem; background: rgba(0, 112, 243, 0.2); color: var(--accent); padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(0, 112, 243, 0.5); }
-        
-        .custom-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; width: 100%; margin-bottom: 15px; }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-main); background: var(--bg-base); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; }
-        .legend-item.hidden { opacity: 0.4; }
-        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
-
-        .chart-container { position: relative; height: 500px; width: 100%; }
-
-        #insightsPanel { display: none; margin-top: 0px; }
-        .insights-layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
-        @media(min-width: 1200px) { .insights-layout { grid-template-columns: 3fr 2fr; } }
-        
-        .insight-chart-wrapper { position: relative; height: 320px; width: 100%; }
-        .insight-cards { display: flex; flex-direction: column; gap: 12px; }
-        .i-card { background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 16px; border-left: 4px solid var(--accent); }
-        .i-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 5px; }
-        .i-val { font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
-        .i-desc { font-size: 0.85rem; color: #a1a1aa; line-height: 1.4; }
-
-        .terminal-wrapper { background: var(--bg-base); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; flex-grow: 1; height: 200px; }
-        .terminal-header { background: #1a1a1a; padding: 12px 16px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); }
-        .mac-dots { display: flex; gap: 6px; }
-        .mac-dot { width: 12px; height: 12px; border-radius: 50%; }
-        .mac-dot:nth-child(1) { background: #ff5f56; } .mac-dot:nth-child(2) { background: #ffbd2e; } .mac-dot:nth-child(3) { background: #27c93f; }
-        .terminal-title { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
-        
-        #terminal { padding: 16px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.6; flex-grow: 1; }
-        .log-line { display: flex; gap: 12px; padding: 4px 0; color: #a1a1aa; }
-        .log-time { color: #52525b; min-width: 85px; }
-        .log-badge { font-weight: 700; min-width: 50px; color: #f5a623; }
-        .log-msg { color: #e4e4e7; }
-
-        .progress-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 15px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--accent); width: 0%; box-shadow: 0 0 10px var(--accent); transition: width 0.1s linear; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="panel-left">
-            <div class="card" style="margin-bottom: 0;">
-                <div class="card-header">
-                    <h2>Global Execution</h2>
-                    <div class="status-badge status-idle" id="statusBadge"><div class="status-dot"></div><span id="statusText">IDLE</span></div>
-                </div>
-                
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                    Simulates the FY 2027 H-1B cap via Markov Chain transition arrays modeling strategic corporate reclassification.
-                </div>
-
-                <label><span>USCIS Overselection Yield</span> <span id="yieldValue">45%</span></label>
-                <input type="range" id="yieldRate" min="0" max="80" value="45" oninput="document.getElementById('yieldValue').innerText = this.value + '%'">
-                
-                <button id="startBtn" onclick="startSim()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    Execute Matrix Sweep
-                </button>
-                
-                <div class="btn-group">
-                    <button id="saveBtn" class="btn-secondary" onclick="exportJSONData()" disabled>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                        Save Data
-                    </button>
-                    <button class="btn-secondary" onclick="document.getElementById('fileUpload').click()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Load Data
-                    </button>
-                </div>
-                <input type="file" id="fileUpload" accept=".json" style="display: none;" onchange="importJSONData(event)">
-
-                <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-            </div>
-
-            <div class="card" style="margin-top: 24px;">
-                <h2>Markov Transition Analytics</h2>
-                
-                <div class="preset-block">
-                    <div class="preset-title">Strategic Reclassification Matrix</div>
-                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L2</div> <span class="preset-val">+15.12%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L3</div> <span class="preset-val">+4.19%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+3.59%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L2 <span class="flow-arrow">→</span> L3</div> <span class="preset-val">+18.98%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L2 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+8.39%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L3 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+10.38%</span></div>
-                </div>
-
-                <div class="preset-block">
-                    <div class="preset-title">Vector Output (Final Pool Shape)</div>
-                    <div class="preset-row"><span>Level 1 (1x)</span> <span class="preset-val" style="color:#e00;">5.10%</span></div>
-                    <div class="preset-row"><span>Level 2 (2x)</span> <span class="preset-val">42.75%</span></div>
-                    <div class="preset-row"><span>Level 3 (3x)</span> <span class="preset-val" style="color:var(--success);">24.79%</span></div>
-                    <div class="preset-row"><span>Level 4 (4x)</span> <span class="preset-val">27.36%</span></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel-right">
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-header">Total Math Operations</div>
-                    <div class="stat-value" id="uiCount" style="color: #fff;">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-header">Smoothing Passes</div>
-                    <div class="stat-value" id="uiPasses">0 / 40</div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="chart-header">
-                    <div class="chart-title">8-Dimensional Probability Matrix <span class="tag">± 95% Confidence Int.</span></div>
-                </div>
-                <div class="custom-legend" id="customLegend"></div>
-                <div class="chart-container">
-                    <canvas id="sweepChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card" id="insightsPanel">
-                <div class="chart-header" style="margin-bottom: 10px;">
-                    <div class="chart-title">Strategic Data Insights (Slice at N = 210,000)</div>
-                </div>
-                <div class="insights-layout">
-                    <div class="insight-chart-wrapper">
-                        <canvas id="barChart"></canvas>
-                    </div>
-                    <div class="insight-cards">
-                        <div class="i-card" style="border-color: #10b981;">
-                            <div class="i-title">Advanced Engineering ROI</div>
-                            <div class="i-val" id="insROI">--</div>
-                            <div class="i-desc">The absolute probability multiplier gained by upgrading a Master's track from Level 3 to Level 4.</div>
-                        </div>
-                        <div class="i-card" style="border-color: #0ea5e9;">
-                            <div class="i-title">The Master's Armor</div>
-                            <div class="i-val" id="insArmor">--</div>
-                            <div class="i-desc">A Level 3 Master's applicant statistically outperforms a Level 3 Bachelor's applicant by this margin.</div>
-                        </div>
-                        <div class="i-card" style="border-color: #be123c;">
-                            <div class="i-title">Entry-Level Filtration</div>
-                            <div class="i-val" id="insFilter">--</div>
-                            <div class="i-desc">Win rate for Level 1 Bachelor's at 210k applicants. The algorithm actively purges this tier.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="terminal-wrapper">
-                <div class="terminal-header">
-                    <div class="mac-dots"><div class="mac-dot"></div><div class="mac-dot"></div><div class="mac-dot"></div></div>
-                    <div class="terminal-title">matrix-logs ~ <span id="coresCount" style="color:var(--accent)"></span> logical cores</div>
-                </div>
-                <div id="terminal">
-                    <div class="log-line"><span class="log-badge" style="color:#0ea5e9">SYS</span><span class="log-msg">Booting UI Interface. Awaiting command parameters...</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const cores = navigator.hardwareConcurrency || 4;
-        document.getElementById('coresCount').innerText = cores;
-
-        // Adjusted Range: 100k to 350k, step 5000 (51 data points)
-        const N_LABELS = [];
-        for (let i = 100000; i <= 350000; i += 5000) N_LABELS.push(i); 
-
-        const PROFILES = [
-            { id: 'w4_m', label: 'L4 + Master\'s', wage: 4, masters: true, color: '#10b981' }, 
-            { id: 'w3_m', label: 'L3 + Master\'s', wage: 3, masters: true, color: '#0ea5e9' }, 
-            { id: 'w2_m', label: 'L2 + Master\'s', wage: 2, masters: true, color: '#6366f1' }, 
-            { id: 'w1_m', label: 'L1 + Master\'s', wage: 1, masters: true, color: '#a855f7' }, 
-            { id: 'w4_b', label: 'L4 + Bachelor\'s', wage: 4, masters: false, color: '#facc15' }, 
-            { id: 'w3_b', label: 'L3 + Bachelor\'s', wage: 3, masters: false, color: '#f97316' }, 
-            { id: 'w2_b', label: 'L2 + Bachelor\'s', wage: 2, masters: false, color: '#ef4444' }, 
-            { id: 'w1_b', label: 'L1 + Bachelor\'s', wage: 1, masters: false, color: '#be123c' }  
-        ];
-
-        let simData = {};
-        PROFILES.forEach(p => {
-            simData[p.id] = {};
-            N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0, margin: 0 }; });
-        });
-
-        let totalEngineOperations = 0; let activeWorkers = 0; let isRunning = false;
-        let taskQueue = []; let completedTasks = 0; let logQueue = []; let animationFrameId;
-        const PASSES = 40; const BATCH_SIZE = 50; const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
-
-        // Chart Setup
-        const ctx = document.getElementById('sweepChart').getContext('2d');
-        const datasets = PROFILES.map(p => ({
-            label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
-            borderColor: p.color, backgroundColor: p.color, borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: false
-        }));
-
-        const sweepChart = new Chart(ctx, {
-            type: 'line', data: { labels: N_LABELS.map(n => (n/1000).toFixed(0) + 'k'), datasets: datasets },
-            options: {
-                responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false },
-                scales: { 
-                    x: { grid: { color: '#222' }, ticks: { color: '#888', maxTicksLimit: 12 }, title: { display: true, text: 'Total Applicant Pool Size', color: '#a1a1aa' } }, 
-                    y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100, title: { display: true, text: 'Probability (%)', color: '#a1a1aa' } } 
-                },
-                plugins: { 
-                    legend: { display: false }, 
-                    tooltip: { 
-                        backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#fff', bodyColor: '#ccc', borderColor: '#333', borderWidth: 1,
-                        callbacks: { 
-                            label: function(c) { 
-                                const dsId = c.dataset.id;
-                                const nVal = N_LABELS[c.dataIndex];
-                                const margin = simData[dsId][nVal].margin || 0;
-                                return `${c.dataset.label}: ${c.parsed.y}% (±${margin}%)`; 
-                            } 
-                        }
-                    } 
-                }
+{
+    "timestamp": "2026-03-11T23:55:32.539Z",
+    "totalEngineOperations": 816000,
+    "completedTasks": 16320,
+    "PASSES": 40,
+    "simData": {
+        "w4_m": {
+            "100000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1996,
+                "margin": "0.23"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1995,
+                "margin": "0.27"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1969,
+                "margin": "0.61"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1954,
+                "margin": "0.73"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1954,
+                "margin": "0.81"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 1910,
+                "margin": "1.01"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 1897,
+                "margin": "1.16"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 1903,
+                "margin": "1.07"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 1867,
+                "margin": "1.28"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 1857,
+                "margin": "1.38"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 1847,
+                "margin": "1.36"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 1807,
+                "margin": "1.54"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 1794,
+                "margin": "1.52"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 1769,
+                "margin": "1.60"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 1755,
+                "margin": "1.74"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 1721,
+                "margin": "1.79"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 1718,
+                "margin": "1.83"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 1668,
+                "margin": "1.95"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 1650,
+                "margin": "1.97"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 1555,
+                "margin": "2.17"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 1576,
+                "margin": "2.12"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 1530,
+                "margin": "2.19"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 1501,
+                "margin": "2.24"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 1453,
+                "margin": "2.30"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 1463,
+                "margin": "2.31"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 1506,
+                "margin": "2.22"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 1478,
+                "margin": "2.26"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 1539,
+                "margin": "2.17"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 1438,
+                "margin": "2.24"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 1409,
+                "margin": "2.34"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 1395,
+                "margin": "2.36"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 1306,
+                "margin": "2.44"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 1258,
+                "margin": "2.49"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 1377,
+                "margin": "2.38"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 1293,
+                "margin": "2.46"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 1251,
+                "margin": "2.47"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 1266,
+                "margin": "2.50"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 1352,
+                "margin": "2.39"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 1240,
+                "margin": "2.56"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 1306,
+                "margin": "2.53"
             }
-        });
-
-        const barCtx = document.getElementById('barChart').getContext('2d');
-        const barChart = new Chart(barCtx, {
-            type: 'bar',
-            data: { labels: PROFILES.map(p => p.label.replace(' + ', '\n')), datasets: [{ data: [], backgroundColor: PROFILES.map(p => p.color), borderRadius: 4 }] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { x: { grid: { display: false }, ticks: { color: '#888', font: {size: 10} } }, y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100 } },
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.parsed.y + '%'; } } } }
+        },
+        "w3_m": {
+            "100000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 1999,
+                "margin": "0.00"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1991,
+                "margin": "0.30"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1978,
+                "margin": "0.55"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1930,
+                "margin": "1.00"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1881,
+                "margin": "1.12"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1889,
+                "margin": "1.12"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 1843,
+                "margin": "1.36"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 1792,
+                "margin": "1.57"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 1795,
+                "margin": "1.60"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 1745,
+                "margin": "1.70"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 1705,
+                "margin": "1.80"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 1655,
+                "margin": "1.98"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 1624,
+                "margin": "1.98"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 1647,
+                "margin": "1.99"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 1596,
+                "margin": "2.01"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 1556,
+                "margin": "2.17"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 1619,
+                "margin": "2.05"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 1486,
+                "margin": "2.27"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 1496,
+                "margin": "2.23"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 1444,
+                "margin": "2.32"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 1367,
+                "margin": "2.38"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 1377,
+                "margin": "2.38"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 1316,
+                "margin": "2.46"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 1260,
+                "margin": "2.48"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 1211,
+                "margin": "2.52"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 1253,
+                "margin": "2.47"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 1312,
+                "margin": "2.43"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 1228,
+                "margin": "2.51"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 1235,
+                "margin": "2.50"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 1241,
+                "margin": "2.49"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 1193,
+                "margin": "2.55"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 1090,
+                "margin": "2.57"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 1152,
+                "margin": "2.55"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 1096,
+                "margin": "2.56"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 1190,
+                "margin": "2.54"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 1051,
+                "margin": "2.57"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 1101,
+                "margin": "2.55"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 1068,
+                "margin": "2.56"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 1099,
+                "margin": "2.60"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 1092,
+                "margin": "2.62"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 1044,
+                "margin": "2.61"
             }
-        });
-
-        const legendContainer = document.getElementById('customLegend');
-        PROFILES.forEach((p, index) => {
-            const el = document.createElement('div'); el.className = 'legend-item';
-            el.innerHTML = `<div class="legend-color" style="background: ${p.color}"></div> ${p.label}`;
-            el.onclick = () => {
-                const meta = sweepChart.getDatasetMeta(index);
-                meta.hidden = meta.hidden === null ? !sweepChart.data.datasets[index].hidden : null;
-                el.classList.toggle('hidden'); sweepChart.update();
-            };
-            legendContainer.appendChild(el);
-        });
-
-        function queueLog(level, msg) {
-            const d = new Date(); const time = `${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}.${d.getMilliseconds().toString().padStart(3,'0')}`;
-            logQueue.push({ time, level, msg });
-        }
-
-        function flushLogsToTerminal() {
-            if (logQueue.length === 0) return;
-            const terminal = document.getElementById('terminal'); const fragment = document.createDocumentFragment();
-            while(logQueue.length > 0) {
-                let log = logQueue.shift(); let div = document.createElement('div'); div.className = 'log-line';
-                let color = log.level === 'SYS' ? '#0ea5e9' : '#f5a623';
-                div.innerHTML = `<span class="log-time">${log.time}</span><span class="log-badge" style="color:${color}">${log.level}</span><span class="log-msg">${log.msg}</span>`;
-                fragment.appendChild(div);
+        },
+        "w2_m": {
+            "100000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 1981,
+                "margin": "0.54"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1932,
+                "margin": "0.95"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1887,
+                "margin": "1.18"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1819,
+                "margin": "1.50"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1681,
+                "margin": "1.89"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1751,
+                "margin": "1.72"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 1684,
+                "margin": "1.87"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 1595,
+                "margin": "2.04"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 1497,
+                "margin": "2.21"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 1499,
+                "margin": "2.19"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 1420,
+                "margin": "2.35"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 1394,
+                "margin": "2.37"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 1333,
+                "margin": "2.45"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 1346,
+                "margin": "2.43"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 1334,
+                "margin": "2.44"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 1340,
+                "margin": "2.40"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 1210,
+                "margin": "2.52"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 1207,
+                "margin": "2.51"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 1180,
+                "margin": "2.54"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 1238,
+                "margin": "2.50"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 1124,
+                "margin": "2.55"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 1115,
+                "margin": "2.57"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 1098,
+                "margin": "2.57"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 995,
+                "margin": "2.57"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 970,
+                "margin": "2.57"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 995,
+                "margin": "2.57"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 1073,
+                "margin": "2.57"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 937,
+                "margin": "2.57"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 969,
+                "margin": "2.57"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 879,
+                "margin": "2.55"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 973,
+                "margin": "2.57"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 902,
+                "margin": "2.57"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 865,
+                "margin": "2.55"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 749,
+                "margin": "2.47"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 800,
+                "margin": "2.52"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 775,
+                "margin": "2.52"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 747,
+                "margin": "2.51"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 801,
+                "margin": "2.57"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 768,
+                "margin": "2.55"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 609,
+                "margin": "2.46"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 853,
+                "margin": "2.60"
             }
-            terminal.appendChild(fragment); terminal.scrollTop = terminal.scrollHeight;
-        }
-
-        function calculateStandardError(wins, runs) {
-            if (runs === 0) return 0;
-            const p = wins / runs;
-            const se = Math.sqrt((p * (1 - p)) / runs);
-            return (1.96 * se * 100).toFixed(2);
-        }
-
-        function generateInsights(dataObj) {
-            document.getElementById('insightsPanel').style.display = 'block';
-            const targetN = 210000; 
-            const barData = PROFILES.map(p => {
-                if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
-                return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
-            });
-            barChart.data.datasets[0].data = barData; barChart.update();
-
-            try {
-                let l3m = ((dataObj['w3_m'][targetN].wins / dataObj['w3_m'][targetN].runs) * 100);
-                let l4m = ((dataObj['w4_m'][targetN].wins / dataObj['w4_m'][targetN].runs) * 100);
-                document.getElementById('insROI').innerText = `+${(l4m - l3m).toFixed(1)}%`;
-
-                let l3b = ((dataObj['w3_b'][targetN].wins / dataObj['w3_b'][targetN].runs) * 100);
-                document.getElementById('insArmor').innerText = `${l3m.toFixed(1)}% vs ${l3b.toFixed(1)}%`;
-
-                let l1b = ((dataObj['w1_b'][targetN].wins / dataObj['w1_b'][targetN].runs) * 100).toFixed(1);
-                document.getElementById('insFilter').innerText = `${l1b}%`;
-            } catch(e) {}
-        }
-
-        async function autoLoadData() {
-            try {
-                const response = await fetch('./preload-data.json');
-                if (!response.ok) return;
-                const parsed = await response.json();
-                
-                simData = parsed.simData; totalEngineOperations = parsed.totalEngineOperations || 0; completedTasks = parsed.completedTasks || 0;
-                
-                document.getElementById('uiCount').innerText = totalEngineOperations.toLocaleString();
-                document.getElementById('uiPasses').innerText = `${PASSES} / ${PASSES} (PRELOADED)`;
-                document.getElementById('progressFill').style.width = '100%';
-                document.getElementById('statusBadge').className = `status-badge status-converged`; document.getElementById('statusText').innerText = 'LOADED';
-                document.getElementById('saveBtn').disabled = false;
-                
-                PROFILES.forEach((p, index) => {
-                    let newData = N_LABELS.map(n => {
-                        if (!simData[p.id] || !simData[p.id][n] || simData[p.id][n].runs === 0) return null;
-                        simData[p.id][n].margin = calculateStandardError(simData[p.id][n].wins, simData[p.id][n].runs);
-                        return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
-                    });
-                    sweepChart.data.datasets[index].data = newData;
-                });
-                sweepChart.update(); generateInsights(simData);
-                queueLog('SYS', 'Pre-computed matrix injected successfully.'); flushLogsToTerminal();
-            } catch (error) {}
-        }
-
-        window.addEventListener('DOMContentLoaded', autoLoadData);
-
-        function exportJSONData() {
-            if (totalEngineOperations === 0) return;
-            const payload = { timestamp: new Date().toISOString(), totalEngineOperations: totalEngineOperations, completedTasks: completedTasks, PASSES: PASSES, simData: simData };
-            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `H1B_FY27_Matrix_${Date.now()}.json`; a.click();
-            URL.revokeObjectURL(url); queueLog('SYS', `Data serialized and exported successfully.`); flushLogsToTerminal();
-        }
-
-        function importJSONData(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    simData = parsed.simData; totalEngineOperations = parsed.totalEngineOperations || 0; completedTasks = parsed.completedTasks || 0;
-                    document.getElementById('uiCount').innerText = totalEngineOperations.toLocaleString();
-                    document.getElementById('uiPasses').innerText = `${PASSES} / ${PASSES} (LOADED)`;
-                    document.getElementById('progressFill').style.width = '100%';
-                    document.getElementById('statusBadge').className = `status-badge status-converged`; document.getElementById('statusText').innerText = 'LOADED';
-                    document.getElementById('saveBtn').disabled = false;
-                    PROFILES.forEach((p, index) => {
-                        let newData = N_LABELS.map(n => {
-                            if (!simData[p.id] || !simData[p.id][n] || simData[p.id][n].runs === 0) return null;
-                            simData[p.id][n].margin = calculateStandardError(simData[p.id][n].wins, simData[p.id][n].runs);
-                            return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
-                        });
-                        sweepChart.data.datasets[index].data = newData;
-                    });
-                    sweepChart.update(); generateInsights(simData);
-                    queueLog('SYS', `State rehydration complete. Interactive chart restored.`); flushLogsToTerminal();
-                } catch (err) { alert("Invalid JSON file."); }
-            };
-            reader.readAsText(file); event.target.value = '';
-        }
-
-        function updateUI() {
-            if (!isRunning) return;
-            document.getElementById('uiCount').innerText = totalEngineOperations.toLocaleString();
-            let currentPass = Math.floor(completedTasks / (N_LABELS.length * PROFILES.length));
-            document.getElementById('uiPasses').innerText = `${currentPass} / ${PASSES}`;
-            document.getElementById('progressFill').style.width = `${(completedTasks / TOTAL_TASKS) * 100}%`;
-
-            PROFILES.forEach((p, index) => {
-                let newData = N_LABELS.map(n => {
-                    if (simData[p.id][n].runs === 0) return null;
-                    simData[p.id][n].margin = calculateStandardError(simData[p.id][n].wins, simData[p.id][n].runs);
-                    return ((simData[p.id][n].wins / simData[p.id][n].runs) * 100).toFixed(2);
-                });
-                sweepChart.data.datasets[index].data = newData;
-            });
-            sweepChart.update(); flushLogsToTerminal(); animationFrameId = requestAnimationFrame(updateUI);
-        }
-
-        // =========================================================================
-        // UPDATED WORKER KERNEL (MARKOV CHAIN TRANSITION MATRIX IMPLEMENTED)
-        // =========================================================================
-        const workerCode = `
-        self.onmessage = function(e) {
-            if (e.data.type === 'init') {
-                self.MAX_N = 350000;
-                self.baseTickets = new Int8Array(self.MAX_N);
-                self.baseMasters = new Uint8Array(self.MAX_N);
-                
-                self.ENTROPY_SIZE = 5000000; 
-                self.entropy = new Float32Array(self.ENTROPY_SIZE);
-                for(let i=0; i < self.ENTROPY_SIZE; i++){ self.entropy[i] = -Math.log(Math.random() || 1e-10); }
-                self.ePtr = 0;
-                
-                // MARKOV TRANSITION VECTOR (Calculated Final Array Distribution)
-                // L4 (27.36%), L3 (24.79%), L2 (42.75%), L1 (5.10%)
-                for (let i = 1; i < self.MAX_N; i++) {
-                    let rT = Math.random();
-                    self.baseTickets[i] = rT > 0.7264 ? 4 : (rT > 0.4785 ? 3 : (rT > 0.0510 ? 2 : 1));
-                    // Master's (55%), Bachelor's (45%)
-                    self.baseMasters[i] = Math.random() < 0.55 ? 1 : 0;
-                }
-                self.postMessage({ type: 'ready', id: e.data.id });
-            } 
-            else if (e.data.type === 'task') {
-                const { N, runs, profileId, wage, masters, yieldRate } = e.data;
-                
-                const regCap = Math.min(Math.floor(65000 * (1 + yieldRate / 100)), N);
-                const mastBaseCap = Math.floor(20000 * (1 + yieldRate / 100));
-                
-                let wins = 0;
-                
-                for (let r = 0; r < runs; r++) {
-                    if (self.ePtr + N + 35000 >= self.ENTROPY_SIZE) { self.ePtr = 0; }
-                    let keys = new Float32Array(N);
-                    keys[0] = self.entropy[self.ePtr++] / wage;
-                    
-                    for (let i = 1; i < N; i++) { keys[i] = self.entropy[self.ePtr++] / self.baseTickets[i]; }
-                    
-                    let keysCopy = new Float32Array(keys); keysCopy.sort();
-                    let regThreshold = keysCopy[regCap - 1];
-                    
-                    if (keys[0] <= regThreshold) { 
-                        wins++; 
-                    } else if (masters) {
-                        let rem = 0; for (let i = 1; i < N; i++) { if (self.baseMasters[i] === 1 && keys[i] > regThreshold) rem++; }
-                        rem++; 
-                        
-                        let mastCap = Math.min(mastBaseCap, rem);
-                        if (mastCap === rem) { 
-                            wins++; 
-                        } else {
-                            let mKeys = new Float32Array(rem); let mIdx = 0;
-                            let uKey = self.entropy[self.ePtr++] / wage; mKeys[mIdx++] = uKey;
-                            for (let i = 1; i < N; i++) {
-                                if (self.baseMasters[i] === 1 && keys[i] > regThreshold) {
-                                    mKeys[mIdx++] = self.entropy[self.ePtr++] / self.baseTickets[i];
-                                }
-                            }
-                            mKeys.sort(); if (uKey <= mKeys[mastCap - 1]) wins++;
-                        }
-                    }
-                }
-                self.postMessage({ type: 'result', N, profileId, wins, runs, workerId: e.data.id });
+        },
+        "w1_m": {
+            "100000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 2000,
+                "margin": "0.00"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 1769,
+                "margin": "1.67"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1641,
+                "margin": "1.97"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1484,
+                "margin": "2.27"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1353,
+                "margin": "2.40"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1291,
+                "margin": "2.48"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1200,
+                "margin": "2.52"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 1187,
+                "margin": "2.53"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 1041,
+                "margin": "2.57"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 992,
+                "margin": "2.57"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 1033,
+                "margin": "2.57"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 898,
+                "margin": "2.55"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 970,
+                "margin": "2.57"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 817,
+                "margin": "2.54"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 811,
+                "margin": "2.55"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 859,
+                "margin": "2.55"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 742,
+                "margin": "2.44"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 697,
+                "margin": "2.42"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 745,
+                "margin": "2.49"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 672,
+                "margin": "2.44"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 714,
+                "margin": "2.46"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 631,
+                "margin": "2.40"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 640,
+                "margin": "2.41"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 586,
+                "margin": "2.34"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 584,
+                "margin": "2.35"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 571,
+                "margin": "2.31"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 589,
+                "margin": "2.36"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 543,
+                "margin": "2.28"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 538,
+                "margin": "2.23"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 576,
+                "margin": "2.31"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 464,
+                "margin": "2.20"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 474,
+                "margin": "2.21"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 522,
+                "margin": "2.23"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 581,
+                "margin": "2.33"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 515,
+                "margin": "2.24"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 437,
+                "margin": "2.16"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 526,
+                "margin": "2.22"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 378,
+                "margin": "2.02"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 469,
+                "margin": "2.21"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 410,
+                "margin": "2.09"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 404,
+                "margin": "2.02"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 498,
+                "margin": "2.32"
             }
-        };
-        `;
-
-        const blob = new Blob([workerCode], {type: 'application/javascript'});
-        const workerUrl = URL.createObjectURL(blob);
-        let workers = [];
-
-        function dispatchTask(worker, workerId) {
-            if (taskQueue.length === 0) { activeWorkers--; if (activeWorkers === 0) finalizeSim(); return; }
-            const task = taskQueue.shift();
-            worker.postMessage({ type: 'task', N: task.N, runs: task.runs, profileId: task.profileId, wage: task.wage, masters: task.masters, yieldRate: task.yieldRate, id: workerId });
-        }
-
-        function startSim() {
-            document.getElementById('startBtn').disabled = true; document.getElementById('saveBtn').disabled = true;
-            document.getElementById('statusBadge').className = `status-badge status-running`; document.getElementById('statusText').innerText = 'COMPUTING MATRIX';
-            document.getElementById('insightsPanel').style.display = 'none';
-            
-            PROFILES.forEach(p => { N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0, margin: 0 }; }); });
-            sweepChart.data.datasets.forEach(ds => ds.data = Array(N_LABELS.length).fill(null)); sweepChart.update();
-            
-            totalEngineOperations = 0; completedTasks = 0; taskQueue = []; logQueue = [];
-            const yieldRate = parseFloat(document.getElementById('yieldRate').value);
-
-            for (let pass = 0; pass < PASSES; pass++) {
-                N_LABELS.forEach(n => { PROFILES.forEach(p => { taskQueue.push({ N: n, runs: BATCH_SIZE, profileId: p.id, wage: p.wage, masters: p.masters, yieldRate: yieldRate }); }); });
+        },
+        "w4_b": {
+            "100000": {
+                "runs": 2000,
+                "wins": 1998,
+                "margin": "0.19"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 1987,
+                "margin": "0.36"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 1963,
+                "margin": "0.71"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 1949,
+                "margin": "0.83"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 1910,
+                "margin": "1.09"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 1897,
+                "margin": "1.10"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 1823,
+                "margin": "1.41"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 1822,
+                "margin": "1.49"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 1763,
+                "margin": "1.69"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 1725,
+                "margin": "1.78"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 1746,
+                "margin": "1.77"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1664,
+                "margin": "1.92"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1585,
+                "margin": "2.11"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1520,
+                "margin": "2.18"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1568,
+                "margin": "2.14"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1498,
+                "margin": "2.18"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 1491,
+                "margin": "2.24"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 1441,
+                "margin": "2.28"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 1453,
+                "margin": "2.29"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 1370,
+                "margin": "2.34"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 1358,
+                "margin": "2.41"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 1370,
+                "margin": "2.36"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 1350,
+                "margin": "2.40"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 1348,
+                "margin": "2.42"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 1327,
+                "margin": "2.44"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 1258,
+                "margin": "2.49"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 1234,
+                "margin": "2.48"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 1209,
+                "margin": "2.53"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 1145,
+                "margin": "2.54"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 1146,
+                "margin": "2.54"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 1126,
+                "margin": "2.55"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 1065,
+                "margin": "2.57"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 1113,
+                "margin": "2.56"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 1174,
+                "margin": "2.51"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 1044,
+                "margin": "2.57"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 1076,
+                "margin": "2.56"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 971,
+                "margin": "2.57"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 1064,
+                "margin": "2.56"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 1051,
+                "margin": "2.57"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 973,
+                "margin": "2.57"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 916,
+                "margin": "2.56"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 869,
+                "margin": "2.56"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 904,
+                "margin": "2.56"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 903,
+                "margin": "2.56"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 870,
+                "margin": "2.56"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 957,
+                "margin": "2.57"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 940,
+                "margin": "2.57"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 852,
+                "margin": "2.56"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 865,
+                "margin": "2.55"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 918,
+                "margin": "2.61"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 863,
+                "margin": "2.60"
             }
-            
-            queueLog('SYS', `Generating Markov post-reclassification vectors...`);
-            isRunning = true; activeWorkers = cores; animationFrameId = requestAnimationFrame(updateUI);
-
-            for (let i = 0; i < cores; i++) {
-                let worker = new Worker(workerUrl); workers.push(worker);
-                worker.onmessage = function(e) {
-                    if (e.data.type === 'ready') { dispatchTask(worker, e.data.id); } 
-                    else if (e.data.type === 'result') {
-                        simData[e.data.profileId][e.data.N].wins += e.data.wins; simData[e.data.profileId][e.data.N].runs += e.data.runs;
-                        totalEngineOperations += e.data.runs; completedTasks++;
-                        dispatchTask(worker, e.data.workerId);
-                    }
-                };
-                worker.postMessage({ type: 'init', id: i });
+        },
+        "w3_b": {
+            "100000": {
+                "runs": 2000,
+                "wins": 1984,
+                "margin": "0.45"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 1946,
+                "margin": "0.84"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 1906,
+                "margin": "1.08"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 1843,
+                "margin": "1.36"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 1783,
+                "margin": "1.56"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 1769,
+                "margin": "1.64"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 1678,
+                "margin": "1.87"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 1634,
+                "margin": "2.00"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 1559,
+                "margin": "2.14"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 1553,
+                "margin": "2.13"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 1529,
+                "margin": "2.17"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1455,
+                "margin": "2.32"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1382,
+                "margin": "2.37"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1368,
+                "margin": "2.38"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1323,
+                "margin": "2.45"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1374,
+                "margin": "2.39"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 1235,
+                "margin": "2.51"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 1196,
+                "margin": "2.53"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 1257,
+                "margin": "2.49"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 1208,
+                "margin": "2.51"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 1086,
+                "margin": "2.56"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 1149,
+                "margin": "2.55"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 1076,
+                "margin": "2.56"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 1146,
+                "margin": "2.54"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 1101,
+                "margin": "2.56"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 1065,
+                "margin": "2.57"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 1030,
+                "margin": "2.57"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 1039,
+                "margin": "2.57"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 961,
+                "margin": "2.57"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 914,
+                "margin": "2.57"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 956,
+                "margin": "2.57"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 935,
+                "margin": "2.57"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 927,
+                "margin": "2.57"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 916,
+                "margin": "2.57"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 868,
+                "margin": "2.55"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 886,
+                "margin": "2.56"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 892,
+                "margin": "2.56"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 858,
+                "margin": "2.56"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 895,
+                "margin": "2.57"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 698,
+                "margin": "2.48"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 702,
+                "margin": "2.47"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 739,
+                "margin": "2.48"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 734,
+                "margin": "2.48"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 740,
+                "margin": "2.49"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 755,
+                "margin": "2.51"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 776,
+                "margin": "2.52"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 763,
+                "margin": "2.49"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 704,
+                "margin": "2.43"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 645,
+                "margin": "2.41"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 758,
+                "margin": "2.52"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 670,
+                "margin": "2.47"
+            }
+        },
+        "w2_b": {
+            "100000": {
+                "runs": 2000,
+                "wins": 1904,
+                "margin": "1.07"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 1822,
+                "margin": "1.42"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 1715,
+                "margin": "1.77"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 1630,
+                "margin": "2.00"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 1550,
+                "margin": "2.18"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 1502,
+                "margin": "2.24"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 1401,
+                "margin": "2.35"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 1367,
+                "margin": "2.38"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 1314,
+                "margin": "2.43"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 1304,
+                "margin": "2.45"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 1184,
+                "margin": "2.53"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 1174,
+                "margin": "2.53"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 1054,
+                "margin": "2.57"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 1094,
+                "margin": "2.57"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 1040,
+                "margin": "2.57"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 1010,
+                "margin": "2.57"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 974,
+                "margin": "2.57"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 991,
+                "margin": "2.57"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 939,
+                "margin": "2.57"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 902,
+                "margin": "2.56"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 859,
+                "margin": "2.54"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 897,
+                "margin": "2.56"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 815,
+                "margin": "2.54"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 829,
+                "margin": "2.53"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 797,
+                "margin": "2.52"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 806,
+                "margin": "2.53"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 717,
+                "margin": "2.47"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 815,
+                "margin": "2.52"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 665,
+                "margin": "2.44"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 708,
+                "margin": "2.45"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 622,
+                "margin": "2.39"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 636,
+                "margin": "2.40"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 674,
+                "margin": "2.41"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 690,
+                "margin": "2.44"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 632,
+                "margin": "2.40"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 634,
+                "margin": "2.40"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 589,
+                "margin": "2.35"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 603,
+                "margin": "2.36"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 639,
+                "margin": "2.40"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 556,
+                "margin": "2.31"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 589,
+                "margin": "2.33"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 618,
+                "margin": "2.39"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 478,
+                "margin": "2.19"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 472,
+                "margin": "2.16"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 452,
+                "margin": "2.15"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 546,
+                "margin": "2.31"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 581,
+                "margin": "2.32"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 481,
+                "margin": "2.23"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 512,
+                "margin": "2.27"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 476,
+                "margin": "2.24"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 461,
+                "margin": "2.21"
+            }
+        },
+        "w1_b": {
+            "100000": {
+                "runs": 2000,
+                "wins": 1633,
+                "margin": "1.99"
+            },
+            "105000": {
+                "runs": 2000,
+                "wins": 1414,
+                "margin": "2.33"
+            },
+            "110000": {
+                "runs": 2000,
+                "wins": 1285,
+                "margin": "2.45"
+            },
+            "115000": {
+                "runs": 2000,
+                "wins": 1167,
+                "margin": "2.53"
+            },
+            "120000": {
+                "runs": 2000,
+                "wins": 1066,
+                "margin": "2.57"
+            },
+            "125000": {
+                "runs": 2000,
+                "wins": 950,
+                "margin": "2.57"
+            },
+            "130000": {
+                "runs": 2000,
+                "wins": 943,
+                "margin": "2.57"
+            },
+            "135000": {
+                "runs": 2000,
+                "wins": 901,
+                "margin": "2.56"
+            },
+            "140000": {
+                "runs": 2000,
+                "wins": 815,
+                "margin": "2.53"
+            },
+            "145000": {
+                "runs": 2000,
+                "wins": 849,
+                "margin": "2.54"
+            },
+            "150000": {
+                "runs": 2000,
+                "wins": 752,
+                "margin": "2.49"
+            },
+            "155000": {
+                "runs": 2000,
+                "wins": 697,
+                "margin": "2.46"
+            },
+            "160000": {
+                "runs": 2000,
+                "wins": 715,
+                "margin": "2.46"
+            },
+            "165000": {
+                "runs": 2000,
+                "wins": 668,
+                "margin": "2.43"
+            },
+            "170000": {
+                "runs": 2000,
+                "wins": 657,
+                "margin": "2.42"
+            },
+            "175000": {
+                "runs": 2000,
+                "wins": 577,
+                "margin": "2.34"
+            },
+            "180000": {
+                "runs": 2000,
+                "wins": 584,
+                "margin": "2.35"
+            },
+            "185000": {
+                "runs": 2000,
+                "wins": 550,
+                "margin": "2.26"
+            },
+            "190000": {
+                "runs": 2000,
+                "wins": 580,
+                "margin": "2.31"
+            },
+            "195000": {
+                "runs": 2000,
+                "wins": 494,
+                "margin": "2.16"
+            },
+            "200000": {
+                "runs": 2000,
+                "wins": 476,
+                "margin": "2.22"
+            },
+            "205000": {
+                "runs": 2000,
+                "wins": 518,
+                "margin": "2.25"
+            },
+            "210000": {
+                "runs": 2000,
+                "wins": 418,
+                "margin": "2.05"
+            },
+            "215000": {
+                "runs": 2000,
+                "wins": 500,
+                "margin": "2.23"
+            },
+            "220000": {
+                "runs": 2000,
+                "wins": 520,
+                "margin": "2.26"
+            },
+            "225000": {
+                "runs": 2000,
+                "wins": 439,
+                "margin": "2.12"
+            },
+            "230000": {
+                "runs": 2000,
+                "wins": 429,
+                "margin": "2.07"
+            },
+            "235000": {
+                "runs": 2000,
+                "wins": 396,
+                "margin": "2.06"
+            },
+            "240000": {
+                "runs": 2000,
+                "wins": 362,
+                "margin": "2.03"
+            },
+            "245000": {
+                "runs": 2000,
+                "wins": 339,
+                "margin": "1.92"
+            },
+            "250000": {
+                "runs": 2000,
+                "wins": 363,
+                "margin": "1.91"
+            },
+            "255000": {
+                "runs": 2000,
+                "wins": 301,
+                "margin": "1.86"
+            },
+            "260000": {
+                "runs": 2000,
+                "wins": 369,
+                "margin": "1.97"
+            },
+            "265000": {
+                "runs": 2000,
+                "wins": 380,
+                "margin": "2.03"
+            },
+            "270000": {
+                "runs": 2000,
+                "wins": 297,
+                "margin": "1.82"
+            },
+            "275000": {
+                "runs": 2000,
+                "wins": 352,
+                "margin": "1.95"
+            },
+            "280000": {
+                "runs": 2000,
+                "wins": 402,
+                "margin": "2.06"
+            },
+            "285000": {
+                "runs": 2000,
+                "wins": 311,
+                "margin": "1.83"
+            },
+            "290000": {
+                "runs": 2000,
+                "wins": 300,
+                "margin": "1.88"
+            },
+            "295000": {
+                "runs": 2000,
+                "wins": 291,
+                "margin": "1.78"
+            },
+            "300000": {
+                "runs": 2000,
+                "wins": 254,
+                "margin": "1.71"
+            },
+            "305000": {
+                "runs": 2000,
+                "wins": 287,
+                "margin": "1.87"
+            },
+            "310000": {
+                "runs": 2000,
+                "wins": 270,
+                "margin": "1.80"
+            },
+            "315000": {
+                "runs": 2000,
+                "wins": 302,
+                "margin": "1.83"
+            },
+            "320000": {
+                "runs": 2000,
+                "wins": 258,
+                "margin": "1.73"
+            },
+            "325000": {
+                "runs": 2000,
+                "wins": 309,
+                "margin": "1.82"
+            },
+            "330000": {
+                "runs": 2000,
+                "wins": 284,
+                "margin": "1.79"
+            },
+            "335000": {
+                "runs": 2000,
+                "wins": 254,
+                "margin": "1.67"
+            },
+            "340000": {
+                "runs": 2000,
+                "wins": 249,
+                "margin": "1.80"
+            },
+            "345000": {
+                "runs": 2000,
+                "wins": 249,
+                "margin": "1.79"
+            },
+            "350000": {
+                "runs": 2000,
+                "wins": 190,
+                "margin": "1.48"
             }
         }
-
-        function finalizeSim() {
-            workers.forEach(w => w.terminate()); workers = [];
-            setTimeout(() => {
-                isRunning = false; cancelAnimationFrame(animationFrameId);
-                document.getElementById('statusBadge').className = `status-badge status-converged`; document.getElementById('statusText').innerText = 'CONVERGED';
-                document.getElementById('startBtn').disabled = false; document.getElementById('saveBtn').disabled = false;
-                document.getElementById('startBtn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> Re-Run Matrix Sweep';
-                queueLog('SYS', `GLOBAL SWEEP COMPLETE. Variance bounds minimized and stabilized.`);
-                generateInsights(simData); flushLogsToTerminal();
-            }, 500);
-        }
-    </script>
-</body>
-</html>
+    }
+}
