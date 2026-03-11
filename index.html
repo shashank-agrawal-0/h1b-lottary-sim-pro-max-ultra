@@ -18,7 +18,7 @@
         .container { max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; grid-template-columns: 1fr; }
         
         @media(min-width: 1050px) {
-            .container { grid-template-columns: 320px 1fr; }
+            .container { grid-template-columns: 340px 1fr; }
             .panel-left { grid-column: 1; position: sticky; top: 24px; height: fit-content; }
             .panel-right { grid-column: 2; display: flex; flex-direction: column; gap: 24px; }
         }
@@ -43,10 +43,13 @@
         label { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
         input[type="range"] { width: 100%; margin-bottom: 24px; accent-color: var(--accent); cursor: pointer; }
 
-        .preset-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
-        .preset-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
-        .preset-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
-        .preset-val { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 700; }
+        .preset-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .preset-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .preset-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; align-items: center; }
+        .preset-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #ededed;}
+        
+        .transition-flow { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.75rem; }
+        .flow-arrow { color: var(--accent); }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
         .stat-box { background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
@@ -102,7 +105,7 @@
                 </div>
                 
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                    High-resolution parametric sweep restricted to the 100k - 350k projected sweet spot.
+                    Simulates the FY 2027 H-1B cap via Markov Chain transition arrays modeling strategic corporate reclassification.
                 </div>
 
                 <label><span>USCIS Overselection Yield</span> <span id="yieldValue">45%</span></label>
@@ -129,18 +132,24 @@
             </div>
 
             <div class="card" style="margin-top: 24px;">
-                <h2>FY 2027 Reality Calibrations</h2>
-                <div class="preset-block" style="margin-top: 15px;">
-                    <div class="preset-title">Wage Demographics (Strategic)</div>
-                    <div class="preset-row"><span>Level 1 (1x)</span><span class="preset-val" style="color:#e00;">20%</span></div>
-                    <div class="preset-row"><span>Level 2 (2x)</span><span class="preset-val">40%</span></div>
-                    <div class="preset-row"><span>Level 3 (3x)</span><span class="preset-val" style="color:var(--success);">25%</span></div>
-                    <div class="preset-row"><span>Level 4 (4x)</span><span class="preset-val">15%</span></div>
-                </div>
+                <h2>Markov Transition Analytics</h2>
+                
                 <div class="preset-block">
-                    <div class="preset-title">Degree Demographics (Inversion)</div>
-                    <div class="preset-row"><span>U.S. Master's +</span><span class="preset-val" style="color:var(--success);">55%</span></div>
-                    <div class="preset-row"><span>Bachelor's Only</span><span class="preset-val">45%</span></div>
+                    <div class="preset-title">Strategic Reclassification Matrix</div>
+                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L2</div> <span class="preset-val">+15.12%</span></div>
+                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L3</div> <span class="preset-val">+4.19%</span></div>
+                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+3.59%</span></div>
+                    <div class="preset-row"><div class="transition-flow">L2 <span class="flow-arrow">→</span> L3</div> <span class="preset-val">+18.98%</span></div>
+                    <div class="preset-row"><div class="transition-flow">L2 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+8.39%</span></div>
+                    <div class="preset-row"><div class="transition-flow">L3 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+10.38%</span></div>
+                </div>
+
+                <div class="preset-block">
+                    <div class="preset-title">Vector Output (Final Pool Shape)</div>
+                    <div class="preset-row"><span>Level 1 (1x)</span> <span class="preset-val" style="color:#e00;">5.10%</span></div>
+                    <div class="preset-row"><span>Level 2 (2x)</span> <span class="preset-val">42.75%</span></div>
+                    <div class="preset-row"><span>Level 3 (3x)</span> <span class="preset-val" style="color:var(--success);">24.79%</span></div>
+                    <div class="preset-row"><span>Level 4 (4x)</span> <span class="preset-val">27.36%</span></div>
                 </div>
             </div>
         </div>
@@ -236,7 +245,7 @@
         let taskQueue = []; let completedTasks = 0; let logQueue = []; let animationFrameId;
         const PASSES = 40; const BATCH_SIZE = 50; const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
 
-        // Chart Setup 
+        // Chart Setup
         const ctx = document.getElementById('sweepChart').getContext('2d');
         const datasets = PROFILES.map(p => ({
             label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
@@ -317,7 +326,7 @@
 
         function generateInsights(dataObj) {
             document.getElementById('insightsPanel').style.display = 'block';
-            const targetN = 210000; // Recalibrated projected sweet spot
+            const targetN = 210000; 
             const barData = PROFILES.map(p => {
                 if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
                 return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
@@ -360,7 +369,7 @@
                     sweepChart.data.datasets[index].data = newData;
                 });
                 sweepChart.update(); generateInsights(simData);
-                queueLog('SYS', 'Pre-computed matrix injected successfully. Note: Ensure N_LABELS match.'); flushLogsToTerminal();
+                queueLog('SYS', 'Pre-computed matrix injected successfully.'); flushLogsToTerminal();
             } catch (error) {}
         }
 
@@ -421,7 +430,7 @@
         }
 
         // =========================================================================
-        // UPDATED WORKER KERNEL (DYNAMIC YIELD & RECALIBRATION)
+        // UPDATED WORKER KERNEL (MARKOV CHAIN TRANSITION MATRIX IMPLEMENTED)
         // =========================================================================
         const workerCode = `
         self.onmessage = function(e) {
@@ -435,11 +444,11 @@
                 for(let i=0; i < self.ENTROPY_SIZE; i++){ self.entropy[i] = -Math.log(Math.random() || 1e-10); }
                 self.ePtr = 0;
                 
-                // Recalibrated Distributions
+                // MARKOV TRANSITION VECTOR (Calculated Final Array Distribution)
+                // L4 (27.36%), L3 (24.79%), L2 (42.75%), L1 (5.10%)
                 for (let i = 1; i < self.MAX_N; i++) {
                     let rT = Math.random();
-                    // L4 (15%), L3 (25%), L2 (40%), L1 (20%)
-                    self.baseTickets[i] = rT > 0.85 ? 4 : (rT > 0.60 ? 3 : (rT > 0.20 ? 2 : 1));
+                    self.baseTickets[i] = rT > 0.7264 ? 4 : (rT > 0.4785 ? 3 : (rT > 0.0510 ? 2 : 1));
                     // Master's (55%), Bachelor's (45%)
                     self.baseMasters[i] = Math.random() < 0.55 ? 1 : 0;
                 }
@@ -448,7 +457,6 @@
             else if (e.data.type === 'task') {
                 const { N, runs, profileId, wage, masters, yieldRate } = e.data;
                 
-                // Dynamic Caps based on Overselection Yield
                 const regCap = Math.min(Math.floor(65000 * (1 + yieldRate / 100)), N);
                 const mastBaseCap = Math.floor(20000 * (1 + yieldRate / 100));
                 
@@ -515,7 +523,7 @@
                 N_LABELS.forEach(n => { PROFILES.forEach(p => { taskQueue.push({ N: n, runs: BATCH_SIZE, profileId: p.id, wage: p.wage, masters: p.masters, yieldRate: yieldRate }); }); });
             }
             
-            queueLog('SYS', `Caching Demographics and Computing Dynamic Yields (${yieldRate}%)...`);
+            queueLog('SYS', `Generating Markov post-reclassification vectors...`);
             isRunning = true; activeWorkers = cores; animationFrameId = requestAnimationFrame(updateUI);
 
             for (let i = 0; i < cores; i++) {
