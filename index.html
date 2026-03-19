@@ -18,7 +18,7 @@
         .container { max-width: 1400px; margin: 0 auto; display: grid; gap: 24px; grid-template-columns: 1fr; }
         
         @media(min-width: 1050px) {
-            .container { grid-template-columns: 340px 1fr; }
+            .container { grid-template-columns: 320px 1fr; }
             .panel-left { grid-column: 1; position: sticky; top: 24px; height: fit-content; }
             .panel-right { grid-column: 2; display: flex; flex-direction: column; gap: 24px; }
         }
@@ -42,6 +42,8 @@
 
         label { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
         input[type="range"] { width: 100%; margin-bottom: 24px; accent-color: var(--accent); cursor: pointer; }
+        select { width: 100%; padding: 12px; margin-bottom: 20px; background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
         .preset-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
         .preset-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
@@ -72,7 +74,7 @@
         @media(min-width: 1200px) { .insights-layout { grid-template-columns: 3fr 2fr; } }
         
         .insight-chart-wrapper { position: relative; height: 320px; width: 100%; }
-        .insight-cards { display: flex; flex-direction: column; gap: 12px; }
+        .insight-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .i-card { background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 16px; border-left: 4px solid var(--accent); }
         .i-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 5px; }
         .i-val { font-size: 1.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
@@ -107,6 +109,20 @@
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
                     Simulates the FY 2027 H-1B cap via Markov Chain transition arrays modeling strategic corporate reclassification.
                 </div>
+
+                <label>Prevailing Wage Level</label>
+                <select id="wage">
+                    <option value="1">Level 1 (1x Weight)</option>
+                    <option value="2">Level 2 (2x Weight)</option>
+                    <option value="3" selected>Level 3 (3x Weight)</option>
+                    <option value="4">Level 4 (4x Weight)</option>
+                </select>
+                
+                <label>U.S. Master's Degree</label>
+                <select id="masters">
+                    <option value="true" selected>Yes</option>
+                    <option value="false">No</option>
+                </select>
 
                 <label><span>USCIS Overselection Yield</span> <span id="yieldValue">45%</span></label>
                 <input type="range" id="yieldRate" min="0" max="80" value="45" oninput="document.getElementById('yieldValue').innerText = this.value + '%'">
@@ -178,7 +194,7 @@
 
             <div class="card" id="insightsPanel">
                 <div class="chart-header" style="margin-bottom: 10px;">
-                    <div class="chart-title">Strategic Data Insights (Slice at N = 210,000)</div>
+                    <div class="chart-title">Strategic Data Insights (Slice at N = 280,000)</div>
                 </div>
                 <div class="insights-layout">
                     <div class="insight-chart-wrapper">
@@ -188,7 +204,7 @@
                         <div class="i-card" style="border-color: #10b981;">
                             <div class="i-title">Advanced Engineering ROI</div>
                             <div class="i-val" id="insROI">--</div>
-                            <div class="i-desc">The absolute probability multiplier gained by upgrading a Master's track from Level 3 to Level 4.</div>
+                            <div class="i-desc">Probability multiplier gained by upgrading a Master's track from Level 3 to Level 4.</div>
                         </div>
                         <div class="i-card" style="border-color: #0ea5e9;">
                             <div class="i-title">The Master's Armor</div>
@@ -198,7 +214,12 @@
                         <div class="i-card" style="border-color: #be123c;">
                             <div class="i-title">Entry-Level Filtration</div>
                             <div class="i-val" id="insFilter">--</div>
-                            <div class="i-desc">Win rate for Level 1 Bachelor's at 210k applicants. The algorithm actively purges this tier.</div>
+                            <div class="i-desc">Win rate for Level 1 Bachelor's at 280k applicants. The algorithm actively purges this tier.</div>
+                        </div>
+                        <div class="i-card" style="border-color: #f5a623;">
+                            <div class="i-title">System-Wide Sunk Cost</div>
+                            <div class="i-val" id="insBurn">--</div>
+                            <div class="i-desc">Estimated total $215 non-refundable registration fees burned system-wide at this volume.</div>
                         </div>
                     </div>
                 </div>
@@ -220,9 +241,9 @@
         const cores = navigator.hardwareConcurrency || 4;
         document.getElementById('coresCount').innerText = cores;
 
-        // Adjusted Range: 100k to 350k, step 5000 (51 data points)
+        // Expanded Range based on latest March reporting: 150k to 400k, step 5000 (51 data points)
         const N_LABELS = [];
-        for (let i = 100000; i <= 350000; i += 5000) N_LABELS.push(i); 
+        for (let i = 150000; i <= 400000; i += 5000) N_LABELS.push(i); 
 
         const PROFILES = [
             { id: 'w4_m', label: 'L4 + Master\'s', wage: 4, masters: true, color: '#10b981' }, 
@@ -245,7 +266,6 @@
         let taskQueue = []; let completedTasks = 0; let logQueue = []; let animationFrameId;
         const PASSES = 40; const BATCH_SIZE = 50; const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
 
-        // Chart Setup
         const ctx = document.getElementById('sweepChart').getContext('2d');
         const datasets = PROFILES.map(p => ({
             label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
@@ -326,7 +346,7 @@
 
         function generateInsights(dataObj) {
             document.getElementById('insightsPanel').style.display = 'block';
-            const targetN = 210000; 
+            const targetN = 280000; // Updated analytical target based on current mid-registration trends
             const barData = PROFILES.map(p => {
                 if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
                 return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
@@ -343,6 +363,10 @@
 
                 let l1b = ((dataObj['w1_b'][targetN].wins / dataObj['w1_b'][targetN].runs) * 100).toFixed(1);
                 document.getElementById('insFilter').innerText = `${l1b}%`;
+                
+                // Financial Risk Metric
+                let totalBurn = targetN * 215;
+                document.getElementById('insBurn').innerText = '$' + (totalBurn / 1000000).toFixed(1) + 'M';
             } catch(e) {}
         }
 
@@ -369,7 +393,7 @@
                     sweepChart.data.datasets[index].data = newData;
                 });
                 sweepChart.update(); generateInsights(simData);
-                queueLog('SYS', 'Pre-computed matrix injected successfully.'); flushLogsToTerminal();
+                queueLog('SYS', 'Pre-computed matrix injected successfully. Note: Ensure N_LABELS match.'); flushLogsToTerminal();
             } catch (error) {}
         }
 
@@ -429,13 +453,10 @@
             sweepChart.update(); flushLogsToTerminal(); animationFrameId = requestAnimationFrame(updateUI);
         }
 
-        // =========================================================================
-        // UPDATED WORKER KERNEL (MARKOV CHAIN TRANSITION MATRIX IMPLEMENTED)
-        // =========================================================================
         const workerCode = `
         self.onmessage = function(e) {
             if (e.data.type === 'init') {
-                self.MAX_N = 350000;
+                self.MAX_N = 500000;
                 self.baseTickets = new Int8Array(self.MAX_N);
                 self.baseMasters = new Uint8Array(self.MAX_N);
                 
@@ -449,7 +470,6 @@
                 for (let i = 1; i < self.MAX_N; i++) {
                     let rT = Math.random();
                     self.baseTickets[i] = rT > 0.7264 ? 4 : (rT > 0.4785 ? 3 : (rT > 0.0510 ? 2 : 1));
-                    // Master's (55%), Bachelor's (45%)
                     self.baseMasters[i] = Math.random() < 0.55 ? 1 : 0;
                 }
                 self.postMessage({ type: 'ready', id: e.data.id });
