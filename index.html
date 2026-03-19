@@ -107,21 +107,20 @@
                 </div>
                 
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                    Simulates the FY 2027 H-1B cap via Markov Chain transition arrays modeling strategic corporate reclassification.
+                    Simulates the FY 2027 H-1B cap via Markov Chain transition arrays. The matrix sweeps all 8 permutations simultaneously.
                 </div>
 
-                <label>Prevailing Wage Level</label>
-                <select id="wage">
-                    <option value="1">Level 1 (1x Weight)</option>
-                    <option value="2">Level 2 (2x Weight)</option>
-                    <option value="3" selected>Level 3 (3x Weight)</option>
-                    <option value="4">Level 4 (4x Weight)</option>
-                </select>
-                
-                <label>U.S. Master's Degree</label>
-                <select id="masters">
-                    <option value="true" selected>Yes</option>
-                    <option value="false">No</option>
+                <label>Highlight Specific Profile in Matrix</label>
+                <select id="highlightProfile" onchange="updateChartHighlight()">
+                    <option value="all">Show All Profiles Equally</option>
+                    <option value="w4_m">Level 4 + Master's</option>
+                    <option value="w3_m">Level 3 + Master's</option>
+                    <option value="w2_m">Level 2 + Master's</option>
+                    <option value="w1_m">Level 1 + Master's</option>
+                    <option value="w4_b">Level 4 + Bachelor's</option>
+                    <option value="w3_b">Level 3 + Bachelor's</option>
+                    <option value="w2_b">Level 2 + Bachelor's</option>
+                    <option value="w1_b">Level 1 + Bachelor's</option>
                 </select>
 
                 <label><span>USCIS Overselection Yield</span> <span id="yieldValue">45%</span></label>
@@ -241,7 +240,6 @@
         const cores = navigator.hardwareConcurrency || 4;
         document.getElementById('coresCount').innerText = cores;
 
-        // Expanded Range based on latest March reporting: 150k to 400k, step 5000 (51 data points)
         const N_LABELS = [];
         for (let i = 150000; i <= 400000; i += 5000) N_LABELS.push(i); 
 
@@ -269,13 +267,15 @@
         const ctx = document.getElementById('sweepChart').getContext('2d');
         const datasets = PROFILES.map(p => ({
             label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
-            borderColor: p.color, backgroundColor: p.color, borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: false
+            borderColor: p.color, backgroundColor: p.color, borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: false,
+            // We keep the original color stored for the highlight function to restore
+            baseColor: p.color 
         }));
 
         const sweepChart = new Chart(ctx, {
             type: 'line', data: { labels: N_LABELS.map(n => (n/1000).toFixed(0) + 'k'), datasets: datasets },
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false },
+                responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, interaction: { mode: 'index', intersect: false },
                 scales: { 
                     x: { grid: { color: '#222' }, ticks: { color: '#888', maxTicksLimit: 12 }, title: { display: true, text: 'Total Applicant Pool Size', color: '#a1a1aa' } }, 
                     y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100, title: { display: true, text: 'Probability (%)', color: '#a1a1aa' } } 
@@ -296,6 +296,31 @@
                 }
             }
         });
+
+        // --- NEW: UI HIGHLIGHT FUNCTION ---
+        function updateChartHighlight() {
+            const selectedId = document.getElementById('highlightProfile').value;
+            
+            sweepChart.data.datasets.forEach((ds) => {
+                if (selectedId === 'all') {
+                    // Reset all
+                    ds.borderColor = ds.baseColor;
+                    ds.borderWidth = 2.5;
+                    ds.borderDash = [];
+                } else if (ds.id === selectedId) {
+                    // Highlight selected
+                    ds.borderColor = ds.baseColor;
+                    ds.borderWidth = 4;
+                    ds.borderDash = [];
+                } else {
+                    // Dim others
+                    ds.borderColor = '#333333';
+                    ds.borderWidth = 1.5;
+                    ds.borderDash = [5, 5];
+                }
+            });
+            sweepChart.update();
+        }
 
         const barCtx = document.getElementById('barChart').getContext('2d');
         const barChart = new Chart(barCtx, {
@@ -346,7 +371,7 @@
 
         function generateInsights(dataObj) {
             document.getElementById('insightsPanel').style.display = 'block';
-            const targetN = 280000; // Updated analytical target based on current mid-registration trends
+            const targetN = 280000; 
             const barData = PROFILES.map(p => {
                 if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
                 return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
@@ -364,7 +389,6 @@
                 let l1b = ((dataObj['w1_b'][targetN].wins / dataObj['w1_b'][targetN].runs) * 100).toFixed(1);
                 document.getElementById('insFilter').innerText = `${l1b}%`;
                 
-                // Financial Risk Metric
                 let totalBurn = targetN * 215;
                 document.getElementById('insBurn').innerText = '$' + (totalBurn / 1000000).toFixed(1) + 'M';
             } catch(e) {}
@@ -393,7 +417,7 @@
                     sweepChart.data.datasets[index].data = newData;
                 });
                 sweepChart.update(); generateInsights(simData);
-                queueLog('SYS', 'Pre-computed matrix injected successfully. Note: Ensure N_LABELS match.'); flushLogsToTerminal();
+                queueLog('SYS', 'Pre-computed matrix injected successfully.'); flushLogsToTerminal();
             } catch (error) {}
         }
 
@@ -465,8 +489,6 @@
                 for(let i=0; i < self.ENTROPY_SIZE; i++){ self.entropy[i] = -Math.log(Math.random() || 1e-10); }
                 self.ePtr = 0;
                 
-                // MARKOV TRANSITION VECTOR (Calculated Final Array Distribution)
-                // L4 (27.36%), L3 (24.79%), L2 (42.75%), L1 (5.10%)
                 for (let i = 1; i < self.MAX_N; i++) {
                     let rT = Math.random();
                     self.baseTickets[i] = rT > 0.7264 ? 4 : (rT > 0.4785 ? 3 : (rT > 0.0510 ? 2 : 1));
@@ -532,6 +554,7 @@
             document.getElementById('startBtn').disabled = true; document.getElementById('saveBtn').disabled = true;
             document.getElementById('statusBadge').className = `status-badge status-running`; document.getElementById('statusText').innerText = 'COMPUTING MATRIX';
             document.getElementById('insightsPanel').style.display = 'none';
+            document.getElementById('highlightProfile').value = 'all'; updateChartHighlight();
             
             PROFILES.forEach(p => { N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0, margin: 0 }; }); });
             sweepChart.data.datasets.forEach(ds => ds.data = Array(N_LABELS.length).fill(null)); sweepChart.update();
