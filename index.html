@@ -12,6 +12,7 @@
             --text-main: #ededed; --text-muted: #a1a1aa;
             --accent: #0070f3; --accent-hover: #3291ff; 
             --border: #333333;
+            --success: #10b981;
         }
 
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-base); color: var(--text-main); margin: 0; padding: 24px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
@@ -30,7 +31,7 @@
         .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); letter-spacing: 0.05em; color: var(--text-muted); }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.3s ease; }
         .status-running .status-dot { background: #f5a623; box-shadow: 0 0 10px #f5a623; }
-        .status-converged .status-dot { background: #0070f3; box-shadow: 0 0 10px #0070f3; }
+        .status-converged .status-dot { background: var(--success); box-shadow: 0 0 10px var(--success); }
 
         button { width: 100%; background: var(--text-main); color: var(--bg-base); border: none; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; }
         button:hover:not(:disabled) { background: #ffffff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
@@ -107,14 +108,14 @@
                 </div>
                 
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                    Simulates the FY 2027 H-1B cap via Markov Chain transition arrays. The matrix sweeps all 8 permutations simultaneously.
+                    Live-calibrated to the March 2026 registration drop. High-resolution sweep (150k-250k).
                 </div>
 
                 <label>Highlight Specific Profile in Matrix</label>
                 <select id="highlightProfile" onchange="updateChartHighlight()">
                     <option value="all">Show All Profiles Equally</option>
                     <option value="w4_m">Level 4 + Master's</option>
-                    <option value="w3_m">Level 3 + Master's</option>
+                    <option value="w3_m" selected>Level 3 + Master's</option>
                     <option value="w2_m">Level 2 + Master's</option>
                     <option value="w1_m">Level 1 + Master's</option>
                     <option value="w4_b">Level 4 + Bachelor's</option>
@@ -160,11 +161,12 @@
                 </div>
 
                 <div class="preset-block">
-                    <div class="preset-title">Vector Output (Final Pool Shape)</div>
-                    <div class="preset-row"><span>Level 1 (1x)</span> <span class="preset-val" style="color:#e00;">5.10%</span></div>
-                    <div class="preset-row"><span>Level 2 (2x)</span> <span class="preset-val">42.75%</span></div>
-                    <div class="preset-row"><span>Level 3 (3x)</span> <span class="preset-val" style="color:var(--success);">24.79%</span></div>
-                    <div class="preset-row"><span>Level 4 (4x)</span> <span class="preset-val">27.36%</span></div>
+                    <div class="preset-title">Final Pool Demographics</div>
+                    <div class="preset-row"><span>U.S. Master's Baseline</span> <span class="preset-val" style="color:var(--success);">60.00%</span></div>
+                    <div class="preset-row"><span>Level 1 (1x) Final</span> <span class="preset-val" style="color:#e00;">5.10%</span></div>
+                    <div class="preset-row"><span>Level 2 (2x) Final</span> <span class="preset-val">42.75%</span></div>
+                    <div class="preset-row"><span>Level 3 (3x) Final</span> <span class="preset-val" style="color:var(--success);">24.79%</span></div>
+                    <div class="preset-row"><span>Level 4 (4x) Final</span> <span class="preset-val">27.36%</span></div>
                 </div>
             </div>
         </div>
@@ -193,7 +195,7 @@
 
             <div class="card" id="insightsPanel">
                 <div class="chart-header" style="margin-bottom: 10px;">
-                    <div class="chart-title">Strategic Data Insights (Slice at N = 280,000)</div>
+                    <div class="chart-title">Strategic Data Insights (Slice at N = 200,000)</div>
                 </div>
                 <div class="insights-layout">
                     <div class="insight-chart-wrapper">
@@ -213,7 +215,7 @@
                         <div class="i-card" style="border-color: #be123c;">
                             <div class="i-title">Entry-Level Filtration</div>
                             <div class="i-val" id="insFilter">--</div>
-                            <div class="i-desc">Win rate for Level 1 Bachelor's at 280k applicants. The algorithm actively purges this tier.</div>
+                            <div class="i-desc">Win rate for Level 1 Bachelor's at 200k applicants. The algorithm actively purges this tier.</div>
                         </div>
                         <div class="i-card" style="border-color: #f5a623;">
                             <div class="i-title">System-Wide Sunk Cost</div>
@@ -240,8 +242,9 @@
         const cores = navigator.hardwareConcurrency || 4;
         document.getElementById('coresCount').innerText = cores;
 
+        // Narrowed Range: 150k to 250k, step 2500 (41 high-res data points)
         const N_LABELS = [];
-        for (let i = 150000; i <= 400000; i += 5000) N_LABELS.push(i); 
+        for (let i = 150000; i <= 250000; i += 2500) N_LABELS.push(i); 
 
         const PROFILES = [
             { id: 'w4_m', label: 'L4 + Master\'s', wage: 4, masters: true, color: '#10b981' }, 
@@ -264,11 +267,11 @@
         let taskQueue = []; let completedTasks = 0; let logQueue = []; let animationFrameId;
         const PASSES = 40; const BATCH_SIZE = 50; const TOTAL_TASKS = N_LABELS.length * PROFILES.length * PASSES; 
 
+        // Chart Setup
         const ctx = document.getElementById('sweepChart').getContext('2d');
         const datasets = PROFILES.map(p => ({
             label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
             borderColor: p.color, backgroundColor: p.color, borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: false,
-            // We keep the original color stored for the highlight function to restore
             baseColor: p.color 
         }));
 
@@ -297,26 +300,15 @@
             }
         });
 
-        // --- NEW: UI HIGHLIGHT FUNCTION ---
         function updateChartHighlight() {
             const selectedId = document.getElementById('highlightProfile').value;
-            
             sweepChart.data.datasets.forEach((ds) => {
                 if (selectedId === 'all') {
-                    // Reset all
-                    ds.borderColor = ds.baseColor;
-                    ds.borderWidth = 2.5;
-                    ds.borderDash = [];
+                    ds.borderColor = ds.baseColor; ds.borderWidth = 2.5; ds.borderDash = [];
                 } else if (ds.id === selectedId) {
-                    // Highlight selected
-                    ds.borderColor = ds.baseColor;
-                    ds.borderWidth = 4;
-                    ds.borderDash = [];
+                    ds.borderColor = ds.baseColor; ds.borderWidth = 4; ds.borderDash = [];
                 } else {
-                    // Dim others
-                    ds.borderColor = '#333333';
-                    ds.borderWidth = 1.5;
-                    ds.borderDash = [5, 5];
+                    ds.borderColor = '#333333'; ds.borderWidth = 1.5; ds.borderDash = [5, 5];
                 }
             });
             sweepChart.update();
@@ -371,7 +363,7 @@
 
         function generateInsights(dataObj) {
             document.getElementById('insightsPanel').style.display = 'block';
-            const targetN = 280000; 
+            const targetN = 200000; 
             const barData = PROFILES.map(p => {
                 if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
                 return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
@@ -417,7 +409,8 @@
                     sweepChart.data.datasets[index].data = newData;
                 });
                 sweepChart.update(); generateInsights(simData);
-                queueLog('SYS', 'Pre-computed matrix injected successfully.'); flushLogsToTerminal();
+                queueLog('SYS', 'Pre-computed matrix injected successfully. Note: Ensure N_LABELS match.'); flushLogsToTerminal();
+                updateChartHighlight();
             } catch (error) {}
         }
 
@@ -454,6 +447,7 @@
                     });
                     sweepChart.update(); generateInsights(simData);
                     queueLog('SYS', `State rehydration complete. Interactive chart restored.`); flushLogsToTerminal();
+                    updateChartHighlight();
                 } catch (err) { alert("Invalid JSON file."); }
             };
             reader.readAsText(file); event.target.value = '';
@@ -480,7 +474,7 @@
         const workerCode = `
         self.onmessage = function(e) {
             if (e.data.type === 'init') {
-                self.MAX_N = 500000;
+                self.MAX_N = 250000;
                 self.baseTickets = new Int8Array(self.MAX_N);
                 self.baseMasters = new Uint8Array(self.MAX_N);
                 
@@ -492,7 +486,7 @@
                 for (let i = 1; i < self.MAX_N; i++) {
                     let rT = Math.random();
                     self.baseTickets[i] = rT > 0.7264 ? 4 : (rT > 0.4785 ? 3 : (rT > 0.0510 ? 2 : 1));
-                    self.baseMasters[i] = Math.random() < 0.55 ? 1 : 0;
+                    self.baseMasters[i] = Math.random() < 0.60 ? 1 : 0;
                 }
                 self.postMessage({ type: 'ready', id: e.data.id });
             } 
@@ -554,7 +548,7 @@
             document.getElementById('startBtn').disabled = true; document.getElementById('saveBtn').disabled = true;
             document.getElementById('statusBadge').className = `status-badge status-running`; document.getElementById('statusText').innerText = 'COMPUTING MATRIX';
             document.getElementById('insightsPanel').style.display = 'none';
-            document.getElementById('highlightProfile').value = 'all'; updateChartHighlight();
+            updateChartHighlight();
             
             PROFILES.forEach(p => { N_LABELS.forEach(n => { simData[p.id][n] = { runs: 0, wins: 0, margin: 0 }; }); });
             sweepChart.data.datasets.forEach(ds => ds.data = Array(N_LABELS.length).fill(null)); sweepChart.update();
