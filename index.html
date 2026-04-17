@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>H-1B FY27 Global Policy Analyzer</title>
+    <title>H-1B FY27 Post-Lottery Analyzer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -50,9 +50,6 @@
         .preset-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 12px; font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
         .preset-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; align-items: center; }
         .preset-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #ededed;}
-        
-        .transition-flow { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.75rem; }
-        .flow-arrow { color: var(--accent); }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
         .stat-box { background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-card) 100%); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
@@ -63,11 +60,6 @@
         .chart-title { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
         .tag { font-size: 0.65rem; background: rgba(0, 112, 243, 0.2); color: var(--accent); padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(0, 112, 243, 0.5); }
         
-        .custom-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; width: 100%; margin-bottom: 15px; }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; color: var(--text-main); background: var(--bg-base); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: opacity 0.2s; }
-        .legend-item.hidden { opacity: 0.4; }
-        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
-
         .chart-container { position: relative; height: 500px; width: 100%; }
 
         #insightsPanel { display: none; margin-top: 0px; }
@@ -108,15 +100,15 @@
                 </div>
                 
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                    Live-calibrated to the March 2026 registration drop. High-resolution sweep (150k-300k).
+                    Calibrated to April 2026 post-lottery actuals. Captures the exact distribution outcomes of the FY27 season.
                 </div>
 
-                <label><span>USCIS Overselection Yield</span> <span id="yieldValue">45%</span></label>
-                <input type="range" id="yieldRate" min="0" max="80" value="45" oninput="document.getElementById('yieldValue').innerText = this.value + '%'">
+                <label><span>USCIS Overselection Yield</span> <span id="yieldValue">30%</span></label>
+                <input type="range" id="yieldRate" min="0" max="80" value="30" oninput="document.getElementById('yieldValue').innerText = this.value + '%'">
                 
                 <button id="startBtn" onclick="startSim()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    Execute Matrix Sweep
+                    Execute Post-Mortem Matrix
                 </button>
                 
                 <div class="btn-group">
@@ -135,25 +127,18 @@
             </div>
 
             <div class="card" style="margin-top: 24px;">
-                <h2>Markov Transition Analytics</h2>
-                
-                <div class="preset-block">
-                    <div class="preset-title">Strategic Reclassification Matrix</div>
-                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L2</div> <span class="preset-val">+15.12%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L3</div> <span class="preset-val">+4.19%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L1 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+3.59%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L2 <span class="flow-arrow">→</span> L3</div> <span class="preset-val">+18.98%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L2 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+8.39%</span></div>
-                    <div class="preset-row"><div class="transition-flow">L3 <span class="flow-arrow">→</span> L4</div> <span class="preset-val">+10.38%</span></div>
+                <h2>FY 2027 Post-Lottery Actuals</h2>
+                <div class="preset-block" style="margin-top: 15px;">
+                    <div class="preset-title">Wage Demographics</div>
+                    <div class="preset-row"><span>Level 1 (1x)</span><span class="preset-val" style="color:#e00;">2.00%</span></div>
+                    <div class="preset-row"><span>Level 2 (2x)</span><span class="preset-val">48.00%</span></div>
+                    <div class="preset-row"><span>Level 3 (3x)</span><span class="preset-val" style="color:var(--success);">35.00%</span></div>
+                    <div class="preset-row"><span>Level 4 (4x)</span><span class="preset-val">15.00%</span></div>
                 </div>
-
                 <div class="preset-block">
-                    <div class="preset-title">Final Pool Demographics</div>
-                    <div class="preset-row"><span>U.S. Master's Baseline</span> <span class="preset-val" style="color:var(--success);">60.00%</span></div>
-                    <div class="preset-row"><span>Level 1 (1x) Final</span> <span class="preset-val" style="color:#e00;">5.10%</span></div>
-                    <div class="preset-row"><span>Level 2 (2x) Final</span> <span class="preset-val">42.75%</span></div>
-                    <div class="preset-row"><span>Level 3 (3x) Final</span> <span class="preset-val" style="color:var(--success);">24.79%</span></div>
-                    <div class="preset-row"><span>Level 4 (4x) Final</span> <span class="preset-val">27.36%</span></div>
+                    <div class="preset-title">Degree Demographics</div>
+                    <div class="preset-row"><span>U.S. Master's +</span><span class="preset-val" style="color:var(--success);">68.00%</span></div>
+                    <div class="preset-row"><span>Bachelor's Only</span><span class="preset-val">32.00%</span></div>
                 </div>
             </div>
         </div>
@@ -174,7 +159,6 @@
                 <div class="chart-header">
                     <div class="chart-title">8-Dimensional Probability Matrix <span class="tag">± 95% Confidence Int.</span></div>
                 </div>
-                <div class="custom-legend" id="customLegend"></div>
                 <div class="chart-container">
                     <canvas id="sweepChart"></canvas>
                 </div>
@@ -182,7 +166,7 @@
 
             <div class="card" id="insightsPanel">
                 <div class="chart-header" style="margin-bottom: 10px;">
-                    <div class="chart-title">Strategic Data Insights (Slice at N = 225,000)</div>
+                    <div class="chart-title">Strategic Data Insights (Slice at Actuals: N = 215,000)</div>
                 </div>
                 <div class="insights-layout">
                     <div class="insight-chart-wrapper">
@@ -202,7 +186,7 @@
                         <div class="i-card" style="border-color: #be123c;">
                             <div class="i-title">Entry-Level Filtration</div>
                             <div class="i-val" id="insFilter">--</div>
-                            <div class="i-desc">Win rate for Level 1 Bachelor's at 225k applicants. The algorithm actively purges this tier.</div>
+                            <div class="i-desc">Win rate for Level 1 Bachelor's at 215k applicants. The algorithm actively purges this tier.</div>
                         </div>
                         <div class="i-card" style="border-color: #f5a623;">
                             <div class="i-title">System-Wide Sunk Cost</div>
@@ -229,9 +213,9 @@
         const cores = navigator.hardwareConcurrency || 4;
         document.getElementById('coresCount').innerText = cores;
 
-        // Range: 150k to 300k, step 2500 (61 data points)
+        // Narrowed to capture the exact outcome range: 150k to 250k
         const N_LABELS = [];
-        for (let i = 150000; i <= 300000; i += 2500) N_LABELS.push(i); 
+        for (let i = 150000; i <= 250000; i += 2500) N_LABELS.push(i); 
 
         const PROFILES = [
             { id: 'w4_m', label: 'L4 + Master\'s', wage: 4, masters: true, color: '#10b981' }, 
@@ -258,7 +242,8 @@
         const ctx = document.getElementById('sweepChart').getContext('2d');
         const datasets = PROFILES.map(p => ({
             label: p.label, id: p.id, data: Array(N_LABELS.length).fill(null),
-            borderColor: p.color, backgroundColor: p.color, borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: false
+            borderColor: p.color, backgroundColor: p.color, borderWidth: 2.5, pointRadius: 0, tension: 0.4, fill: false,
+            baseColor: p.color 
         }));
 
         const sweepChart = new Chart(ctx, {
@@ -270,7 +255,11 @@
                     y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100, title: { display: true, text: 'Probability (%)', color: '#a1a1aa' } } 
                 },
                 plugins: { 
-                    legend: { display: false }, 
+                    legend: { 
+                        display: true, 
+                        position: 'top', 
+                        labels: { color: '#ededed', usePointStyle: true, pointStyle: 'rectRounded', padding: 15, font: { size: 11, family: 'Inter' } } 
+                    }, 
                     tooltip: { 
                         backgroundColor: 'rgba(0,0,0,0.85)', titleColor: '#fff', bodyColor: '#ccc', borderColor: '#333', borderWidth: 1,
                         callbacks: { 
@@ -295,18 +284,6 @@
                 scales: { x: { grid: { display: false }, ticks: { color: '#888', font: {size: 10} } }, y: { grid: { color: '#222' }, ticks: { color: '#888' }, min: 0, max: 100 } },
                 plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.parsed.y + '%'; } } } }
             }
-        });
-
-        const legendContainer = document.getElementById('customLegend');
-        PROFILES.forEach((p, index) => {
-            const el = document.createElement('div'); el.className = 'legend-item';
-            el.innerHTML = `<div class="legend-color" style="background: ${p.color}"></div> ${p.label}`;
-            el.onclick = () => {
-                const meta = sweepChart.getDatasetMeta(index);
-                meta.hidden = meta.hidden === null ? !sweepChart.data.datasets[index].hidden : null;
-                el.classList.toggle('hidden'); sweepChart.update();
-            };
-            legendContainer.appendChild(el);
         });
 
         function queueLog(level, msg) {
@@ -335,7 +312,7 @@
 
         function generateInsights(dataObj) {
             document.getElementById('insightsPanel').style.display = 'block';
-            const targetN = 225000; 
+            const targetN = 215000; // Locked to the actual reported number
             const barData = PROFILES.map(p => {
                 if(!dataObj[p.id] || !dataObj[p.id][targetN] || dataObj[p.id][targetN].runs === 0) return 0;
                 return parseFloat(((dataObj[p.id][targetN].wins / dataObj[p.id][targetN].runs) * 100).toFixed(2));
@@ -381,7 +358,7 @@
                     sweepChart.data.datasets[index].data = newData;
                 });
                 sweepChart.update(); generateInsights(simData);
-                queueLog('SYS', 'Pre-computed matrix injected successfully.'); flushLogsToTerminal();
+                queueLog('SYS', 'Pre-computed matrix injected successfully. Note: Ensure N_LABELS match.'); flushLogsToTerminal();
             } catch (error) {}
         }
 
@@ -444,7 +421,7 @@
         const workerCode = `
         self.onmessage = function(e) {
             if (e.data.type === 'init') {
-                self.MAX_N = 300000;
+                self.MAX_N = 250000;
                 self.baseTickets = new Int8Array(self.MAX_N);
                 self.baseMasters = new Uint8Array(self.MAX_N);
                 
@@ -455,8 +432,10 @@
                 
                 for (let i = 1; i < self.MAX_N; i++) {
                     let rT = Math.random();
-                    self.baseTickets[i] = rT > 0.7264 ? 4 : (rT > 0.4785 ? 3 : (rT > 0.0510 ? 2 : 1));
-                    self.baseMasters[i] = Math.random() < 0.60 ? 1 : 0;
+                    // Shifted to reflect the total abandonment of Level 1: L4(15%), L3(35%), L2(48%), L1(2%)
+                    self.baseTickets[i] = rT > 0.85 ? 4 : (rT > 0.50 ? 3 : (rT > 0.02 ? 2 : 1));
+                    // Master's degree holders dominating the pool at 68%
+                    self.baseMasters[i] = Math.random() < 0.68 ? 1 : 0;
                 }
                 self.postMessage({ type: 'ready', id: e.data.id });
             } 
@@ -529,7 +508,7 @@
                 N_LABELS.forEach(n => { PROFILES.forEach(p => { taskQueue.push({ N: n, runs: BATCH_SIZE, profileId: p.id, wage: p.wage, masters: p.masters, yieldRate: yieldRate }); }); });
             }
             
-            queueLog('SYS', `Generating Markov post-reclassification vectors...`);
+            queueLog('SYS', `Generating post-lottery trajectory vectors...`);
             isRunning = true; activeWorkers = cores; animationFrameId = requestAnimationFrame(updateUI);
 
             for (let i = 0; i < cores; i++) {
